@@ -27,13 +27,14 @@ import {
   MANAGEMENT_FRAMEWORKS_THEORY,
   FrameworkTheory,
 } from '../../data/managementFrameworksTheory';
-import { AxisTabId } from '../../types/axisTypes';
+import { AxisNavigationIntent, AxisTabId } from '../../types/axisTypes';
+import { FRAMEWORK_TOOL_TARGET } from '../../services/theoryService';
 import { dialogService } from '../common/CustomDialog';
 
 interface TheoryHandbookTabProps {
   activeFramework: FrameworkCode;
   onSelectFramework: (code: FrameworkCode) => void;
-  onNavigate: (tab: AxisTabId) => void;
+  onNavigate: (tab: AxisTabId, intent?: Omit<AxisNavigationIntent, 'tab' | 'ts'>) => void;
 }
 
 const FRAMEWORK_ICONS: Record<FrameworkCode, React.FC<{ size?: number; className?: string }>> = {
@@ -127,7 +128,10 @@ export const TheoryHandbookTab: React.FC<TheoryHandbookTabProps> = ({
   };
 
   const handleGoToTool = () => {
-    if (currentTheory.targetTab) {
+    const target = FRAMEWORK_TOOL_TARGET[activeFramework];
+    if (target) {
+      onNavigate(target.tab, { subTab: target.subTab });
+    } else if (currentTheory.targetTab) {
       onNavigate(currentTheory.targetTab);
     }
   };
@@ -245,7 +249,7 @@ export const TheoryHandbookTab: React.FC<TheoryHandbookTabProps> = ({
                       isSelected ? 'text-slate-300' : 'text-slate-500'
                     }`}
                   >
-                    {item.targetTabName.split(' ')[0]}
+                    {FRAMEWORK_TOOL_TARGET[code]?.label.split('›')[0].trim() || item.targetTabName.split(' ')[0]}
                   </div>
                 </div>
 
@@ -263,7 +267,7 @@ export const TheoryHandbookTab: React.FC<TheoryHandbookTabProps> = ({
         {/* Framework Hero Banner */}
         <div className="p-6 sm:p-7 border-b border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-amber-50/30">
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-            <div className="space-y-1.5 max-w-4xl">
+            <div className="space-y-1.5 max-w-5xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`px-3 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider ${currentTheory.themeColor.badgeBg} ${currentTheory.themeColor.badgeText} border ${currentTheory.themeColor.border}`}
@@ -276,7 +280,7 @@ export const TheoryHandbookTab: React.FC<TheoryHandbookTabProps> = ({
                 </span>
                 <span className="text-xs text-slate-300">•</span>
                 <span className="text-xs font-bold text-amber-800">
-                  Phục vụ: {currentTheory.targetTabName}
+                  Công cụ áp dụng: {FRAMEWORK_TOOL_TARGET[activeFramework]?.label || currentTheory.targetTabName}
                 </span>
               </div>
 
@@ -320,54 +324,54 @@ export const TheoryHandbookTab: React.FC<TheoryHandbookTabProps> = ({
             </div>
           </div>
 
-          {/* Sub-Tabs Navigation Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pt-5 border-t border-slate-200/70 mt-5 text-xs font-bold">
+          {/* Sub-Tabs Navigation Bar (macOS Segmented Bar) */}
+          <div className="macos-segmented overflow-x-auto mt-5 text-xs font-bold">
             <button
               onClick={() => setContentTab('PILLARS')}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] whitespace-nowrap transition-all cursor-pointer ${
                 contentTab === 'PILLARS'
-                  ? 'bg-[#0C1B2E] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] font-bold'
+                  : 'text-slate-600 hover:text-[#0C1B2E]'
               }`}
             >
               1. Nguyên Lý & Trụ Cột ({currentTheory.coreComponents.length})
             </button>
             <button
               onClick={() => setContentTab('STEPS')}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] whitespace-nowrap transition-all cursor-pointer ${
                 contentTab === 'STEPS'
-                  ? 'bg-[#0C1B2E] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] font-bold'
+                  : 'text-slate-600 hover:text-[#0C1B2E]'
               }`}
             >
               2. Quy Trình 4 Bước Cho CEO
             </button>
             <button
               onClick={() => setContentTab('EXAMPLE')}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] whitespace-nowrap transition-all cursor-pointer ${
                 contentTab === 'EXAMPLE'
-                  ? 'bg-[#0C1B2E] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] font-bold'
+                  : 'text-slate-600 hover:text-[#0C1B2E]'
               }`}
             >
               3. Ví Dụ Mẫu & So Sánh (Sai vs Chuẩn)
             </button>
             <button
               onClick={() => setContentTab('QUESTIONS')}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] whitespace-nowrap transition-all cursor-pointer ${
                 contentTab === 'QUESTIONS'
-                  ? 'bg-[#0C1B2E] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] font-bold'
+                  : 'text-slate-600 hover:text-[#0C1B2E]'
               }`}
             >
               4. Bộ Câu Hỏi Vàng & Bẫy Sai
             </button>
             <button
               onClick={() => setContentTab('CHEATSHEET')}
-              className={`px-3.5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[10px] whitespace-nowrap transition-all cursor-pointer ${
                 contentTab === 'CHEATSHEET'
-                  ? 'bg-[#0C1B2E] text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] font-bold'
+                  : 'text-slate-600 hover:text-[#0C1B2E]'
               }`}
             >
               5. Sổ Tay Ghi Nhớ Bỏ Túi

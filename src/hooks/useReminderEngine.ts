@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AxisScheduleItem, AxisSmartTask, AxisPdcaCycle } from '../types/axisTypes';
+import {
+  AxisScheduleItem,
+  AxisSmartTask,
+  AxisPdcaCycle,
+  AxisMeeting,
+} from '../types/axisTypes';
 import { dialogService } from '../components/common/CustomDialog';
+import { getLocalTodayYmd, parseLocalYmd } from '../utils/dateUtils';
 
 // Âm chuông nhắc lịch nhẹ nhàng, sang trọng bằng Web Audio API (không cần file mp3 rời)
 export function playExecutiveChime() {
@@ -26,13 +32,13 @@ export function playExecutiveChime() {
 }
 
 export function isScheduleActiveOnDate(item: AxisScheduleItem, dateObj: Date): boolean {
-  const ymd = dateObj.toISOString().slice(0, 10);
-  const day = dateObj.getDay(); // 0 CN -> 6 T7
+  const ymd = getLocalTodayYmd(dateObj);
+  const day = dateObj.getDay(); // 0 CN -> 6 T7 (theo giờ địa phương)
   if (item.recurrence === 'ONCE') return item.date === ymd;
   if (item.recurrence === 'DAILY') return ymd >= item.date;
   if (item.recurrence === 'WEEKDAYS') return day >= 1 && day <= 6 && ymd >= item.date;
   if (item.recurrence === 'WEEKLY') {
-    const targetDay = item.weekday ?? new Date(item.date).getDay();
+    const targetDay = item.weekday ?? parseLocalYmd(item.date).getDay();
     return day === targetDay && ymd >= item.date;
   }
   return false;
@@ -41,7 +47,8 @@ export function isScheduleActiveOnDate(item: AxisScheduleItem, dateObj: Date): b
 export function useReminderEngine(
   schedules: AxisScheduleItem[],
   smartTasks: AxisSmartTask[],
-  pdcaCycles: AxisPdcaCycle[]
+  pdcaCycles: AxisPdcaCycle[],
+  meetings: AxisMeeting[] = []
 ) {
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(() =>
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -93,14 +100,17 @@ export function useReminderEngine(
     const perm = await Notification.requestPermission();
     setNotifPermission(perm);
     if (perm === 'granted') {
-      triggerAlert('AXIS — Chuông nhắc lịch đã sẵn sàng', 'Hệ thống sẽ nhắc đúng giờ các lịch trình và mốc tiến độ của CEO.');
+      triggerAlert(
+        'AXIS — Chuông nhắc lịch đã sẵn sàng',
+        'Hệ thống sẽ nhắc đúng giờ các lịch họp, lịch trình và mốc tiến độ của CEO.'
+      );
     }
   };
 
   useEffect(() => {
     const checkReminders = () => {
       const now = new Date();
-      const todayYmd = now.toISOString().slice(0, 10);
+      const todayYmd = getLocalTodayYmd(now);
       const hh = String(now.getHours()).padStart(2, '0');
       const mm = String(now.getMinutes()).padStart(2, '0');
       const currentHm = `${hh}:${mm}`;
@@ -118,7 +128,19 @@ export function useReminderEngine(
         }
       });
 
-      // 2. Nhắc tổng hợp đầu ngày cho các mốc tiến độ & PDCA đến hạn hôm nay (1 lần trong ngày)
+      // 2. Nhắc đúng giờ cho Cuộc họp điều hành trong ngày
+      meetings.forEach((m) => {
+        if (m.status === 'COMPLETED') return;
+        if (m.date === todayYmd && m.time === currentHm) {
+          const key = `meet-${m.id}-${todayYmd}-${currentHm}`;
+          if (!firedKeysRef.current.has(key)) {
+            markFired(key);
+            triggerAlert(`📅 Đến giờ họp (${m.time})`, m.title);
+          }
+        }
+      });
+
+      // 3. Nhắc tổng hợp đầu ngày cho các mốc tiến độ & PDCA đến hạn hôm nay (1 lần trong ngày)
       const dueCheckinsCount = smartTasks
         .filter((t) => t.status !== 'COMPLETED')
         .reduce(
@@ -147,7 +169,7 @@ export function useReminderEngine(
         if (!firedKeysRef.current.has(pdcaKey) && now.getHours() >= 8) {
           markFired(pdcaKey);
           triggerAlert(
-            '🔄 Đến ngày Check kết quả PDCA',
+            '🔄 Đến ngày kiểm tra kết quả PDCA',
             `Có ${duePdcaCount} chu trình cải tiến PDCA đến hẹn đánh giá hiệu quả hôm nay.`
           );
         }
@@ -157,13 +179,15 @@ export function useReminderEngine(
     checkReminders();
     const interval = setInterval(checkReminders, 25000);
     return () => clearInterval(interval);
-  }, [schedules, smartTasks, pdcaCycles, triggerAlert]);
+  }, [schedules, smartTasks, pdcaCycles, meetings, triggerAlert]);
 
   return {
     notifPermission,
     requestNotificationPermission,
     testChime: () =>
-      triggerAlert('AXIS — Kiểm tra chuông điều hành', 'Âm báo và thông báo nhắc lịch hoạt động hoàn hảo.'),
+      triggerAlert(
+        'AXIS — Kiểm tra chuông điều hành',
+        'Âm báo và thông báo nhắc lịch hoạt động hoàn hảo.'
+      ),
   };
 }
-

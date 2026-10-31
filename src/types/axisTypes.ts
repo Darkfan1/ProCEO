@@ -1,5 +1,29 @@
 export type AxisTabId = 'today' | 'execution' | 'strategy' | 'people' | 'meetings' | 'theory';
 
+export interface AxisNavigationIntent {
+  tab: AxisTabId;
+  subTab?: string;
+  action?:
+    | 'NEW_TASK'
+    | 'NEW_PDCA'
+    | 'EDIT_PDCA'
+    | 'NEW_MEETING'
+    | 'OPEN_MEETING'
+    | 'NEW_PREP'
+    | 'NEW_FFC'
+    | 'OPEN_MASLOW';
+  lsxCode?: string;
+  okrId?: string;
+  okrTitle?: string;
+  krTitle?: string;
+  staffName?: string;
+  meetingId?: string;
+  pdcaId?: string;
+  prefillTitle?: string;
+  prefillNote?: string;
+  ts: number;
+}
+
 // ─── SHARED PROTRACK ERP ENTITIES (READ / BRIDGE) ──────────────────────────
 export interface ErpUser {
   id: string;
@@ -162,6 +186,11 @@ export interface AxisSmartTask {
   assigneeId?: string;
   department?: string;
   linkedLsxCode?: string;
+  linkedOkrId?: string;
+  linkedOkrTitle?: string;
+  sourceMeetingId?: string;
+  sourceMeetingTitle?: string;
+  sourcePdcaId?: string;
   startDate: string; // YYYY-MM-DD
   dueDate: string; // YYYY-MM-DD
   status: 'IN_PROGRESS' | 'COMPLETED' | 'AT_RISK';
@@ -277,7 +306,9 @@ export interface AxisMeetingActionItem {
   taskTitle: string;
   assigneeName: string;
   dueDate: string;
+  completed?: boolean;
   convertedToSmart?: boolean;
+  linkedTaskId?: string;
 }
 
 export interface AxisMeeting {

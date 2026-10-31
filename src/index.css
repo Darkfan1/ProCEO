@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --axis-bg: #F8F9FB;
+  --axis-bg: #F5F6F9;
   --axis-surface: #FFFFFF;
   --axis-navy: #0C1B2E;
   --axis-navy-soft: #162B47;
   --axis-gold: #C69C47;
   --axis-gold-light: #EFE3C6;
   --axis-gold-deep: #9D772B;
-  --axis-border: rgba(226, 232, 240, 0.88);
+  --axis-border: rgba(0, 0, 0, 0.07);
   --axis-text-primary: #0F1E32;
   --axis-text-secondary: #5B6B82;
 }
@@ -23,33 +23,65 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Inter", "Segoe UI", Roboto, sans-serif;
   background-color: var(--axis-bg);
   color: var(--axis-text-primary);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-serif-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Playfair Display', Georgia, serif;
 }
 
-/* Executive Minimalist Card */
+/* macOS 26 Frosted Glass Card */
 .axis-card {
-  background: #FFFFFF;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 18px;
-  box-shadow: 0 1px 2px rgba(12, 27, 46, 0.025), 0 8px 24px rgba(12, 27, 46, 0.025);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px rgba(12, 27, 46, 0.035);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .axis-card:hover {
-  border-color: rgba(203, 213, 225, 0.95);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(12, 27, 46, 0.05);
 }
 
-/* Subtle Custom Scrollbars */
+/* macOS 26 Sidebar Material */
+.macos-sidebar {
+  background: rgba(246, 246, 248, 0.82);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* macOS 26 Top Toolbar Material */
+.macos-topbar {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+/* macOS 26 Segmented Control */
+.macos-segmented {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* macOS Subtle Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -59,10 +91,14 @@ body,
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.35);
   border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .tabular-nums {

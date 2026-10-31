@@ -1,0 +1,303 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - id: string (UID)
+    //   - username: string (unique)
+    //   - email: string (for login)
+    //   - name: string
+    //   - role: string
+    //   - department: string
+    //
+    // [Other collections: intakes, lsx, reports, masterproducts, customers, machines]
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'DIRECTOR'] ||
+         (request.auth.token.email == "furywing2608@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'username', 'email', 'name', 'role']) &&
+             data.username is string && data.username.size() > 0 && data.username.size() < 50 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Collection Rules - ProTrack ERP Core
+    // ===============================================================
+
+    match /users/{userId} {
+      // Cho phép tìm kiếm (query) để tìm Email theo Tên đăng nhập khi chưa login
+      allow list: if true; 
+      
+      allow get: if isAuthenticated();
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin() || isValidUser(request.resource.data));
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || request.auth.uid == userId);
+      allow delete: if isAdmin();
+    }
+
+    match /intakes/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /lsx/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /reports/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /masterproducts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /customers/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /subcontractors/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /machines/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /personnel/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Warehouse & Inventory Management Rules
+    // ===============================================================
+    
+    match /wh_materials/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_receipts/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_issues/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_returns/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_opening_stocks/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_audits/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_suppliers/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_procurement_orders/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_procurement_receipts/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /wh_supplier_debt_approvals/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Purchasing / General Proposals
+    match /proposals/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Human Resources (Internal Hub) Rules
+    // ===============================================================
+    
+    match /hr_personnel/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_profiles/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_announcements/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_leave_requests/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_leave_balances/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_overtime/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_proposals/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_rewards/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_disciplines/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_attendance/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_onboarding/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_transfers/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /hr_offboardings/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Quotation Hub Rules
+    // ===============================================================
+    
+    match /quote_materials/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /quote_customers/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /quote_orders/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /quote_quotes/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Shared Systems & Messaging Rules
+    // ===============================================================
+    match /notifications/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /reminders/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /lsx_chats/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /user_tokens/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // HR Module Additional Rules
+    // ===============================================================
+    match /hr_birthday_wishes/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /hr_overtime_schedules/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /hr_performance_reviews/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /hr_training_records/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /hr_discipline_records/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /hr_rewards_records/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /training_plans/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /training_documents/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Salary Records — Admin Only (thông tin mật)
+    // ===============================================================
+    match /hr_salaries/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ===============================================================
+    // AXIS — CEO Executive OS Collections (CEO / Admin Directives)
+    // ===============================================================
+    match /axis_tasks/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_schedules/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_pdca/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_okrs/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_swot/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_coaching/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_praises/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_meetings/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_prep_docs/{id} { allow read, write: if isAuthenticated(); }
+    match /axis_trainings/{id} { allow read, write: if isAuthenticated(); }
+
+    // Mọi bảng mở rộng tương lai bắt đầu bằng axis_
+    match /{collectionName}/{docId} {
+      allow read, write: if isAuthenticated() && collectionName.matches('^axis_.*');
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

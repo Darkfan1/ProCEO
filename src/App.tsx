@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import {
   AxisTabId,
+  AxisNavigationIntent,
   ErpUser,
   AxisScheduleItem,
   AxisSmartTask,
@@ -27,6 +28,7 @@ import {
 import { useErpRadar } from './hooks/useErpRadar';
 import { useReminderEngine, isScheduleActiveOnDate } from './hooks/useReminderEngine';
 import { CustomDialogHost, dialogService } from './components/common/CustomDialog';
+import { QuickTheoryDrawer } from './components/common/QuickTheoryDrawer';
 import { AxisLogo } from './components/common/AxisLogo';
 import { LoginScreen } from './components/LoginScreen';
 import { AxisLayout } from './components/AxisLayout';
@@ -38,6 +40,7 @@ import { MeetingsPlaybookTab } from './components/tabs/MeetingsPlaybookTab';
 import { TheoryHandbookTab } from './components/tabs/TheoryHandbookTab';
 import { theoryService } from './services/theoryService';
 import { FrameworkCode } from './data/managementFrameworksTheory';
+import { getLocalTodayYmd } from './utils/dateUtils';
 
 const ALLOWED_CEO_ROLES = ['ADMIN', 'DIRECTOR'];
 
@@ -57,6 +60,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AxisTabId>(() => {
     return (localStorage.getItem('axis_active_tab') as AxisTabId) || 'today';
   });
+  const [navIntent, setNavIntent] = useState<AxisNavigationIntent | null>(null);
 
   // AXIS CEO Data State
   const [schedules, setSchedules] = useState<AxisScheduleItem[]>([]);
@@ -69,13 +73,41 @@ export const App: React.FC = () => {
   const [meetings, setMeetings] = useState<AxisMeeting[]>([]);
   const [prepDocs, setPrepDocs] = useState<AxisPrepDoc[]>([]);
   const [trainings, setTrainings] = useState<AxisTrainingSession[]>([]);
+
+  // Non-destructive Quick Theory Drawer + Full Theory Tab state
   const [selectedTheoryCode, setSelectedTheoryCode] = useState<FrameworkCode>('SMART');
+  const [theoryDrawerOpen, setTheoryDrawerOpen] = useState(false);
 
   useEffect(() => {
-    return theoryService.subscribe((code) => {
+    return theoryService.subscribe((code, mode) => {
       setSelectedTheoryCode(code);
-      setActiveTab('theory');
+      if (mode === 'FULL_TAB') {
+        setTheoryDrawerOpen(false);
+        setActiveTab('theory');
+      } else {
+        setTheoryDrawerOpen(true);
+      }
     });
+  }, []);
+
+  const handleNavigate = useCallback(
+    (tab: AxisTabId, intentPartial?: Omit<AxisNavigationIntent, 'tab' | 'ts'>) => {
+      setActiveTab(tab);
+      if (intentPartial) {
+        setNavIntent({
+          ...intentPartial,
+          tab,
+          ts: Date.now(),
+        });
+      } else {
+        setNavIntent(null);
+      }
+    },
+    []
+  );
+
+  const clearNavIntent = useCallback(() => {
+    setNavIntent(null);
   }, []);
 
   useEffect(() => {
@@ -111,13 +143,13 @@ export const App: React.FC = () => {
         const resolvedUser: ErpUser | null = erpUser
           ? { ...erpUser, email: fbUser.email || erpUser.email }
           : fbUser.email === 'furywing2608@gmail.com'
-          ? {
+            ? {
               id: fbUser.uid,
               email: fbUser.email,
               name: fbUser.displayName || 'CEO',
               role: 'ADMIN',
             }
-          : null;
+            : null;
 
         if (!resolvedUser) {
           setAuthError('Tài khoản này chưa được đăng ký trong hệ thống ProTrack.');
@@ -168,30 +200,51 @@ export const App: React.FC = () => {
   }, [currentUser]);
 
   const erpRadar = useErpRadar(Boolean(currentUser));
-  const reminderEngine = useReminderEngine(schedules, smartTasks, pdcaCycles);
+  const reminderEngine = useReminderEngine(schedules, smartTasks, pdcaCycles, meetings);
 
   const badges = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const todayStr = getLocalTodayYmd(now);
+
     const pendingTodaySchedules = schedules.filter(
       (s) => isScheduleActiveOnDate(s, now) && !(s.completedDates || []).includes(todayStr)
     ).length;
 
-    const due369 = smartTasks
-      .filter((t) => t.status !== 'COMPLETED')
-      .reduce(
-        (acc, t) => acc + t.checkins.filter((c) => !c.completed && c.dueDate <= todayStr).length,
-        0
-      );
+    const upcomingTodayMeetings = meetings.filter(
+      (m) => m.status === 'UPCOMING' && m.date === todayStr
+    ).length;
+
+    const activeTasks = smartTasks.filter((t) => t.status !== 'COMPLETED');
+    const due369 = activeTasks.reduce(
+      (acc, t) => acc + t.checkins.filter((c) => !c.completed && c.dueDate <= todayStr).length,
+      0
+    );
+    const overdueTasks = activeTasks.filter((t) => t.dueDate < todayStr).length;
+    const duePdca = pdcaCycles.filter(
+      (p) => p.currentPhase !== 'STANDARDIZED' && p.checkDate && p.checkDate <= todayStr
+    ).length;
 
     return {
-      todayCount: pendingTodaySchedules + erpRadar.radarMetrics.pendingProposals.length,
-      executionCount: due369,
+      todayCount:
+        pendingTodaySchedules +
+        erpRadar.radarMetrics.pendingProposals.length +
+        upcomingTodayMeetings,
+      executionCount: due369 + overdueTasks + duePdca,
+      meetingsCount: upcomingTodayMeetings,
     };
-  }, [schedules, smartTasks, erpRadar.radarMetrics.pendingProposals.length]);
+  }, [
+    schedules,
+    meetings,
+    smartTasks,
+    pdcaCycles,
+    erpRadar.radarMetrics.pendingProposals.length,
+  ]);
 
   const handleLogout = async () => {
-    const ok = await dialogService.confirm('Bạn muốn đăng xuất khỏi bàn điều hành AXIS?', 'Đăng xuất');
+    const ok = await dialogService.confirm(
+      'Bạn muốn đăng xuất khỏi bàn điều hành AXIS?',
+      'Đăng xuất'
+    );
     if (!ok) return;
     await signOut(auth);
     setCurrentUser(null);
@@ -212,12 +265,23 @@ export const App: React.FC = () => {
   return (
     <>
       <CustomDialogHost />
+      <QuickTheoryDrawer
+        isOpen={theoryDrawerOpen}
+        code={selectedTheoryCode}
+        onSelectCode={setSelectedTheoryCode}
+        onClose={() => setTheoryDrawerOpen(false)}
+        onOpenFullTab={(code) => {
+          setSelectedTheoryCode(code);
+          setTheoryDrawerOpen(false);
+          setActiveTab('theory');
+        }}
+      />
       {!currentUser ? (
         <LoginScreen authError={authError} setAuthError={setAuthError} />
       ) : (
         <AxisLayout
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(tab) => handleNavigate(tab)}
           currentUser={currentUser}
           onLogout={handleLogout}
           cloudSynced={cloudSynced}
@@ -233,8 +297,11 @@ export const App: React.FC = () => {
               schedules={schedules}
               smartTasks={smartTasks}
               pdcaCycles={pdcaCycles}
+              meetings={meetings}
+              maslowSessions={maslowSessions}
+              trainings={trainings}
               radarMetrics={erpRadar.radarMetrics}
-              onNavigate={setActiveTab}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -243,8 +310,11 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               smartTasks={smartTasks}
               pdcaCycles={pdcaCycles}
+              okrs={okrs}
               staffDirectory={erpRadar.staffDirectory}
               lsxOrders={erpRadar.lsxOrders}
+              navIntent={navIntent}
+              onConsumeIntent={clearNavIntent}
             />
           )}
 
@@ -252,12 +322,16 @@ export const App: React.FC = () => {
             <StrategyTab
               okrs={okrs}
               swotBoards={swotBoards}
+              smartTasks={smartTasks}
               liveErpMetrics={{
                 onTimeLsxRate: erpRadar.radarMetrics.onTimeLsxRate,
                 completedLsxCount: erpRadar.radarMetrics.completedLsxCount,
                 proposalResolvedRate: erpRadar.radarMetrics.proposalResolvedRate,
                 activeTrainingCount: erpRadar.radarMetrics.activeTrainingCount,
               }}
+              navIntent={navIntent}
+              onConsumeIntent={clearNavIntent}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -267,9 +341,14 @@ export const App: React.FC = () => {
               staffDirectory={erpRadar.staffDirectory}
               topPerformers={erpRadar.radarMetrics.topPerformers}
               getStaff360Profile={erpRadar.getStaff360Profile}
+              smartTasks={smartTasks}
+              pdcaCycles={pdcaCycles}
               maslowSessions={maslowSessions}
               ffcPraises={ffcPraises}
               trainings={trainings}
+              navIntent={navIntent}
+              onConsumeIntent={clearNavIntent}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -278,8 +357,12 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               meetings={meetings}
               prepDocs={prepDocs}
+              smartTasks={smartTasks}
+              overdueLsx={erpRadar.radarMetrics.overdueOrDueTodayLsx}
               staffDirectory={erpRadar.staffDirectory}
-              onNavigate={setActiveTab}
+              navIntent={navIntent}
+              onConsumeIntent={clearNavIntent}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -287,7 +370,7 @@ export const App: React.FC = () => {
             <TheoryHandbookTab
               activeFramework={selectedTheoryCode}
               onSelectFramework={setSelectedTheoryCode}
-              onNavigate={setActiveTab}
+              onNavigate={handleNavigate}
             />
           )}
         </AxisLayout>
@@ -297,4 +380,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

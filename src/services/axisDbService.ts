@@ -33,6 +33,8 @@ export const removeUndefinedDeep = (val: any): any => {
 };
 
 const LOCAL_PREFIX = 'axis_mirror_';
+const SEED_FLAG_PREFIX = 'axis_seeded_v1_';
+const CLOUD_MIGRATED_PREFIX = 'axis_cloud_migrated_v1_';
 
 function readLocalMirror<T>(collectionName: string): T[] {
   try {
@@ -114,11 +116,29 @@ export const axisDbService = {
     callback: (items: T[]) => void,
     seedDefaults?: T[]
   ) => {
-    // 1. Hydrate ngay lập tức từ local mirror (0ms latency)
+    const seedFlagKey = `${SEED_FLAG_PREFIX}${collectionName}`;
+    const migratedKey = `${CLOUD_MIGRATED_PREFIX}${collectionName}`;
+
+    // 1. Hydrate ngay lập tức từ local mirror (0ms latency) — chỉ nạp seed mẫu đúng 1 lần đầu tiên
     let initial = readLocalMirror<T>(collectionName);
-    if (initial.length === 0 && seedDefaults && seedDefaults.length > 0) {
+    const alreadySeeded = (() => {
+      try {
+        return localStorage.getItem(seedFlagKey) === '1';
+      } catch {
+        return false;
+      }
+    })();
+
+    if (initial.length === 0 && !alreadySeeded && seedDefaults && seedDefaults.length > 0) {
       initial = seedDefaults;
       writeLocalMirror(collectionName, initial);
+      try {
+        localStorage.setItem(seedFlagKey, '1');
+      } catch {}
+    } else if (initial.length > 0 && !alreadySeeded) {
+      try {
+        localStorage.setItem(seedFlagKey, '1');
+      } catch {}
     }
     callback(initial);
 
@@ -141,21 +161,45 @@ export const axisDbService = {
             ...(d.data() as any),
           })) as T[];
 
+          const alreadyMigrated = (() => {
+            try {
+              return localStorage.getItem(migratedKey) === '1';
+            } catch {
+              return false;
+            }
+          })();
+
           if (remoteItems.length > 0) {
+            try {
+              localStorage.setItem(seedFlagKey, '1');
+              localStorage.setItem(migratedKey, '1');
+            } catch {}
             writeLocalMirror(collectionName, remoteItems);
             callback(remoteItems);
-          } else {
-            // Nếu cloud đang rỗng nhưng local đã có dữ liệu (vừa deploy rules xong), tự động đẩy local lên cloud
+          } else if (!alreadyMigrated) {
+            // Lần đầu tiên kết nối Cloud khi Cloud còn rỗng: đẩy dữ liệu Local hiện có lên 1 lần duy nhất
+            try {
+              localStorage.setItem(migratedKey, '1');
+              localStorage.setItem(seedFlagKey, '1');
+            } catch {}
             const localNow = readLocalMirror<T>(collectionName);
             if (localNow.length > 0) {
               localNow.forEach((item) => {
                 const clean = removeUndefinedDeep(item);
-                setDoc(doc(db, collectionName, item.id), {
-                  ...clean,
-                  updatedAt: serverTimestamp(),
-                }, { merge: true }).catch(() => {});
+                setDoc(
+                  doc(db, collectionName, item.id),
+                  {
+                    ...clean,
+                    updatedAt: serverTimestamp(),
+                  },
+                  { merge: true }
+                ).catch(() => {});
               });
             }
+          } else {
+            // Cloud đã từng đồng bộ và hiện tại đã được xóa hết -> tôn trọng trạng thái rỗng, không hồi sinh dữ liệu cũ
+            writeLocalMirror(collectionName, []);
+            callback([]);
           }
         },
         (err) => {
@@ -177,6 +221,9 @@ export const axisDbService = {
   },
 
   saveAxisItem: async <T extends { id: string }>(collectionName: string, item: T) => {
+    try {
+      localStorage.setItem(`${SEED_FLAG_PREFIX}${collectionName}`, '1');
+    } catch {}
     const clean = removeUndefinedDeep(item) as T;
     const current = readLocalMirror<T>(collectionName);
     const idx = current.findIndex((x) => x.id === clean.id);
@@ -204,6 +251,10 @@ export const axisDbService = {
   },
 
   deleteAxisItem: async (collectionName: string, id: string) => {
+    try {
+      localStorage.setItem(`${SEED_FLAG_PREFIX}${collectionName}`, '1');
+      localStorage.setItem(`${CLOUD_MIGRATED_PREFIX}${collectionName}`, '1');
+    } catch {}
     const current = readLocalMirror<{ id: string }>(collectionName);
     const next = current.filter((x) => x.id !== id);
     writeLocalMirror(collectionName, next);

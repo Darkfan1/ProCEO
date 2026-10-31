@@ -13,6 +13,7 @@ import {
   ErpDisciplineRecord,
   ErpTrainingPlan,
 } from '../types/axisTypes';
+import { addLocalDaysYmd, getLocalTodayYmd } from '../utils/dateUtils';
 
 export function useErpRadar(enabled: boolean) {
   const [erpUsers, setErpUsers] = useState<ErpUser[]>([]);
@@ -20,6 +21,7 @@ export function useErpRadar(enabled: boolean) {
   const [lsxOrders, setLsxOrders] = useState<ErpLsxOrder[]>([]);
   const [recentReports, setRecentReports] = useState<ErpStageReport[]>([]);
   const [proposals, setProposals] = useState<ErpProposal[]>([]);
+  const [pendingProposalsDirect, setPendingProposalsDirect] = useState<ErpProposal[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<ErpLeaveRequest[]>([]);
   const [overtimeSchedules, setOvertimeSchedules] = useState<ErpOvertimeSchedule[]>([]);
   const [rewards, setRewards] = useState<ErpRewardRecord[]>([]);
@@ -55,9 +57,7 @@ export function useErpRadar(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysIso = thirtyDaysAgo.toISOString().slice(0, 10);
+    const thirtyDaysIso = addLocalDaysYmd(-30);
 
     const unsubs: Array<() => void> = [];
 
@@ -85,7 +85,11 @@ export function useErpRadar(enabled: boolean) {
     // Giai đoạn 1: Dữ liệu điều hành trọng yếu
     safeSub<ErpUser>(query(collection(db, 'users'), limit(150)), setErpUsers, true);
     safeSub<ErpLsxOrder>(query(collection(db, 'lsx'), limit(250)), setLsxOrders);
-    safeSub<ErpProposal>(query(collection(db, 'proposals'), limit(80)), setProposals);
+    safeSub<ErpProposal>(query(collection(db, 'proposals'), limit(100)), setProposals);
+    safeSub<ErpProposal>(
+      query(collection(db, 'proposals'), where('finalStatus', '==', 'PENDING'), limit(100)),
+      setPendingProposalsDirect
+    );
     safeSub<ErpStageReport>(
       query(collection(db, 'reports'), where('timestamp', '>=', thirtyDaysIso), limit(300)),
       setRecentReports
@@ -140,7 +144,7 @@ export function useErpRadar(enabled: boolean) {
 
   // Tổng hợp các chỉ số Radar trực tiếp cho CEO
   const radarMetrics = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalTodayYmd();
     const activeLsx = lsxOrders.filter((l) => !l.isDeleted && l.status !== 'CANCELLED');
     const completedLsx = activeLsx.filter(
       (l) => l.status === 'COMPLETED' || l.progress === 'Đã đóng gói'
@@ -156,14 +160,26 @@ export function useErpRadar(enabled: boolean) {
     });
 
     const onTimeLsxRate =
-      activeLsx.length > 0
-        ? Math.round(((activeLsx.length - overdueOrDueTodayLsx.length) / activeLsx.length) * 100)
+      inProgressLsx.length > 0
+        ? Math.round(
+            ((inProgressLsx.length - overdueOrDueTodayLsx.length) / inProgressLsx.length) * 100
+          )
         : 100;
 
-    const pendingProposals = proposals.filter((p) => p.finalStatus === 'PENDING');
+    // Gộp proposals chờ duyệt trực tiếp + sample để không bỏ sót bất kỳ đề xuất PENDING nào
+    const mergedMap = new Map<string, ErpProposal>();
+    proposals.forEach((p) => mergedMap.set(p.id, p));
+    pendingProposalsDirect.forEach((p) => mergedMap.set(p.id, p));
+    const allKnownProposals = Array.from(mergedMap.values());
+
+    const pendingProposals = allKnownProposals
+      .filter((p) => p.finalStatus === 'PENDING')
+      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     const proposalResolvedRate =
-      proposals.length > 0
-        ? Math.round(((proposals.length - pendingProposals.length) / proposals.length) * 100)
+      allKnownProposals.length > 0
+        ? Math.round(
+            ((allKnownProposals.length - pendingProposals.length) / allKnownProposals.length) * 100
+          )
         : 100;
 
     const todayReports = recentReports.filter(
@@ -215,7 +231,7 @@ export function useErpRadar(enabled: boolean) {
       topPerformers,
       activeTrainingCount,
     };
-  }, [lsxOrders, proposals, recentReports, leaveRequests, trainingPlans]);
+  }, [lsxOrders, proposals, pendingProposalsDirect, recentReports, leaveRequests, trainingPlans]);
 
   // Hàm trích xuất Hồ sơ 360° của 1 nhân sự bất kỳ cho Tháp Maslow
   const getStaff360Profile = (staffName: string) => {

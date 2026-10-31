@@ -7,21 +7,18 @@ import {
   AxisMeeting,
   CheckinMilestone369,
 } from '../types/axisTypes';
+import { addLocalDaysYmd, getLocalTodayYmd, parseLocalYmd } from '../utils/dateUtils';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => getLocalTodayYmd();
 
-const addDaysStr = (days: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-};
+const addDaysStr = (days: number) => addLocalDaysYmd(days);
 
 export function buildCheckin369(startDate: string, dueDate: string): CheckinMilestone369[] {
-  const startMs = new Date(startDate).getTime();
-  const endMs = new Date(dueDate).getTime();
+  const startMs = parseLocalYmd(startDate).getTime();
+  const endMs = parseLocalYmd(dueDate).getTime();
   const span = Math.max(endMs - startMs, 3 * 24 * 60 * 60 * 1000);
 
-  const fmt = (ratio: number) => new Date(startMs + span * ratio).toISOString().slice(0, 10);
+  const fmt = (ratio: number) => getLocalTodayYmd(new Date(startMs + span * ratio));
 
   return [
     {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Grid2x2,
@@ -10,11 +10,17 @@ import {
   ArrowRightCircle,
   BookOpen,
   X,
+  Target,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react';
 import {
   AxisOkrObjective,
   AxisKeyResult,
   AxisSwotBoard,
+  AxisSmartTask,
+  AxisNavigationIntent,
+  AxisTabId,
   ErpAutoMetricKey,
 } from '../../types/axisTypes';
 import { axisDbService } from '../../services/axisDbService';
@@ -26,12 +32,16 @@ import { theoryService } from '../../services/theoryService';
 interface StrategyTabProps {
   okrs: AxisOkrObjective[];
   swotBoards: AxisSwotBoard[];
+  smartTasks: AxisSmartTask[];
   liveErpMetrics: {
     onTimeLsxRate: number;
     completedLsxCount: number;
     proposalResolvedRate: number;
     activeTrainingCount: number;
   };
+  navIntent?: AxisNavigationIntent | null;
+  onConsumeIntent?: () => void;
+  onNavigate: (tab: AxisTabId, intent?: Omit<AxisNavigationIntent, 'tab' | 'ts'>) => void;
 }
 
 const AUTO_METRIC_LABELS: Record<ErpAutoMetricKey, string> = {
@@ -42,20 +52,48 @@ const AUTO_METRIC_LABELS: Record<ErpAutoMetricKey, string> = {
   TRAINING_ACTIVE_COUNT: 'Tự động từ ERP: Số kế hoạch đào tạo OJT',
 };
 
+const OKR_STATUS_META: Record<
+  AxisOkrObjective['status'],
+  { label: string; cls: string }
+> = {
+  ON_TRACK: {
+    label: 'Đúng tiến độ',
+    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  NEEDS_ATTENTION: {
+    label: 'Cần lưu ý / Thúc đẩy',
+    cls: 'bg-amber-50 text-amber-800 border-amber-200',
+  },
+  ACHIEVED: {
+    label: 'Đã đạt mục tiêu',
+    cls: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
+};
+
 export const StrategyTab: React.FC<StrategyTabProps> = ({
   okrs,
   swotBoards,
+  smartTasks,
   liveErpMetrics,
+  navIntent,
+  onConsumeIntent,
+  onNavigate,
 }) => {
   const [subTab, setSubTab] = useState<'OKR' | 'SWOT'>('OKR');
 
   // OKR Modal state
   const [showOkrModal, setShowOkrModal] = useState(false);
   const [editingOkr, setEditingOkr] = useState<AxisOkrObjective | null>(null);
-  const [period, setPeriod] = useState(`Q${Math.floor(new Date().getMonth() / 3) + 1}/${new Date().getFullYear()}`);
+  const [period, setPeriod] = useState(
+    `Q${Math.floor(new Date().getMonth() / 3) + 1}/${new Date().getFullYear()}`
+  );
   const [objTitle, setObjTitle] = useState('');
   const [whyItMatters, setWhyItMatters] = useState('');
+  const [okrStatus, setOkrStatus] = useState<AxisOkrObjective['status']>('ON_TRACK');
   const [krs, setKrs] = useState<AxisKeyResult[]>([]);
+
+  // Local draft map for manual KR progress inputs (saves onBlur / Enter instead of every keystroke)
+  const [krDrafts, setKrDrafts] = useState<Record<string, string>>({});
 
   // SWOT State
   const currentSwot: AxisSwotBoard = swotBoards[0] || SEED_SWOT;
@@ -65,7 +103,32 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     o: string;
     t: string;
   }>({ s: '', w: '', o: '', t: '' });
+  const [towsDrafts, setTowsDrafts] = useState<AxisSwotBoard['towsStrategies']>(
+    currentSwot.towsStrategies
+  );
   const [generatingTows, setGeneratingTows] = useState(false);
+
+  // Sync TOWS drafts when Firestore swotBoards updates
+  useEffect(() => {
+    setTowsDrafts(currentSwot.towsStrategies);
+  }, [
+    currentSwot.id,
+    currentSwot.towsStrategies.so,
+    currentSwot.towsStrategies.wo,
+    currentSwot.towsStrategies.st,
+    currentSwot.towsStrategies.wt,
+  ]);
+
+  // Consume deep-link navigation intent
+  useEffect(() => {
+    if (!navIntent || navIntent.tab !== 'strategy') return;
+    if (navIntent.subTab === 'SWOT') {
+      setSubTab('SWOT');
+    } else if (navIntent.subTab === 'OKR') {
+      setSubTab('OKR');
+    }
+    onConsumeIntent?.();
+  }, [navIntent, onConsumeIntent]);
 
   const resolveKrCurrentValue = (kr: AxisKeyResult): number => {
     if (kr.autoMetric === 'ON_TIME_LSX_RATE') return liveErpMetrics.onTimeLsxRate;
@@ -79,6 +142,7 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     setEditingOkr(null);
     setObjTitle(prefillTitle);
     setWhyItMatters('');
+    setOkrStatus('ON_TRACK');
     setKrs([
       {
         id: `kr-${Date.now()}-1`,
@@ -98,6 +162,7 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     setPeriod(okr.period);
     setObjTitle(okr.title);
     setWhyItMatters(okr.whyItMatters);
+    setOkrStatus(okr.status || 'ON_TRACK');
     setKrs(okr.keyResults);
     setShowOkrModal(true);
   };
@@ -111,7 +176,7 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
       period,
       title: objTitle.trim(),
       whyItMatters: whyItMatters.trim(),
-      status: editingOkr ? editingOkr.status : 'ON_TRACK',
+      status: okrStatus,
       keyResults: validKrs,
       createdAt: editingOkr ? editingOkr.createdAt : new Date().toISOString(),
     };
@@ -120,9 +185,28 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     setShowOkrModal(false);
   };
 
-  const updateManualKrProgress = async (okr: AxisOkrObjective, krId: string, nextVal: number) => {
+  const handleChangeOkrStatus = async (
+    okr: AxisOkrObjective,
+    nextStatus: AxisOkrObjective['status']
+  ) => {
+    if (okr.status === nextStatus) return;
+    await axisDbService.saveAxisItem('axis_okrs', { ...okr, status: nextStatus });
+    dialogService.toast(`Đã chuyển trạng thái OKR sang "${OKR_STATUS_META[nextStatus].label}"`);
+  };
+
+  const commitManualKrProgress = async (okr: AxisOkrObjective, kr: AxisKeyResult) => {
+    const draftStr = krDrafts[kr.id];
+    if (draftStr === undefined) return;
+    const parsed = Number(draftStr);
+    const nextVal = Number.isFinite(parsed) ? parsed : kr.currentValue;
+    setKrDrafts((prev) => {
+      const copy = { ...prev };
+      delete copy[kr.id];
+      return copy;
+    });
+    if (nextVal === kr.currentValue) return;
     const nextKrs = okr.keyResults.map((k) =>
-      k.id === krId ? { ...k, currentValue: nextVal } : k
+      k.id === kr.id ? { ...k, currentValue: nextVal } : k
     );
     await axisDbService.saveAxisItem('axis_okrs', { ...okr, keyResults: nextKrs });
   };
@@ -136,8 +220,11 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     dialogService.toast('Đã xóa OKR.', 'info');
   };
 
-  // SWOT Handlers
-  const addSwotBullet = async (quadrant: 'strengths' | 'weaknesses' | 'opportunities' | 'threats', key: 's' | 'w' | 'o' | 't') => {
+  // SWOT & TOWS Handlers
+  const addSwotBullet = async (
+    quadrant: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
+    key: 's' | 'w' | 'o' | 't'
+  ) => {
     const text = swotInput[key].trim();
     if (!text) return;
     const updated: AxisSwotBoard = {
@@ -149,7 +236,10 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     setSwotInput((prev) => ({ ...prev, [key]: '' }));
   };
 
-  const removeSwotBullet = async (quadrant: 'strengths' | 'weaknesses' | 'opportunities' | 'threats', idx: number) => {
+  const removeSwotBullet = async (
+    quadrant: 'strengths' | 'weaknesses' | 'opportunities' | 'threats',
+    idx: number
+  ) => {
     const updated: AxisSwotBoard = {
       ...currentSwot,
       [quadrant]: currentSwot[quadrant].filter((_, i) => i !== idx),
@@ -158,7 +248,35 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     await axisDbService.saveAxisItem('axis_swot', updated);
   };
 
+  const saveTowsQuadrant = async (key: keyof AxisSwotBoard['towsStrategies']) => {
+    const nextVal = (towsDrafts[key] || '').trim();
+    if (nextVal === (currentSwot.towsStrategies[key] || '').trim()) return;
+    await axisDbService.saveAxisItem('axis_swot', {
+      ...currentSwot,
+      towsStrategies: {
+        ...currentSwot.towsStrategies,
+        [key]: nextVal,
+      },
+      updatedAtStr: new Date().toISOString(),
+    });
+    dialogService.toast('Đã lưu cập nhật chiến lược TOWS.');
+  };
+
   const handleAiGenerateTows = async () => {
+    const hasExisting =
+      currentSwot.towsStrategies.so ||
+      currentSwot.towsStrategies.wo ||
+      currentSwot.towsStrategies.st ||
+      currentSwot.towsStrategies.wt;
+
+    if (hasExisting) {
+      const ok = await dialogService.confirm(
+        'AI sẽ phân tích lại 4 góc SWOT hiện tại và ghi đè nội dung 4 ô chiến lược TOWS bên dưới. Bạn muốn tiếp tục?',
+        'Tạo lại Chiến lược TOWS bằng AI'
+      );
+      if (!ok) return;
+    }
+
     setGeneratingTows(true);
     try {
       const tows = await axisAiService.generateTowsFromSwot({
@@ -167,12 +285,13 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
         opportunities: currentSwot.opportunities,
         threats: currentSwot.threats,
       });
+      setTowsDrafts(tows);
       await axisDbService.saveAxisItem('axis_swot', {
         ...currentSwot,
         towsStrategies: tows,
         updatedAtStr: new Date().toISOString(),
       });
-      dialogService.toast('Đã tổng hợp 4 chiến lược hành động TOWS từ SWOT!');
+      dialogService.toast('Đã tổng hợp 4 mũi nhọn hành động TOWS từ SWOT!');
     } finally {
       setGeneratingTows(false);
     }
@@ -184,28 +303,32 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] sm:text-[25px] font-extrabold text-[#0C1B2E] tracking-tight">
-            Định Hướng Chiến Lược (OKR & SWOT)
+            Mục Tiêu Trọng Tâm (OKR) & Vị Thế Chiến Lược (SWOT)
           </h1>
           <p className="text-[13px] text-slate-500 mt-0.5">
-            Phân tích vị thế bằng <span className="font-semibold text-slate-700">SWOT</span> và chuyển hóa thành{' '}
-            <span className="font-semibold text-slate-700">OKR</span> gắn trực tiếp dữ liệu thật từ ProTrack ERP.
+            Chuyển hóa phân tích <span className="font-semibold text-slate-700">SWOT → TOWS</span> thành{' '}
+            <span className="font-semibold text-slate-700">Mục tiêu OKR</span> gắn dữ liệu ERP và triển khai xuống đầu việc hàng ngày.
           </p>
         </div>
 
-        <div className="inline-flex p-1 rounded-xl bg-slate-200/70 self-start">
+        <div className="macos-segmented self-start">
           <button
             onClick={() => setSubTab('OKR')}
-            className={`px-4 py-2 rounded-lg text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all ${
-              subTab === 'OKR' ? 'bg-white text-[#0C1B2E] shadow-sm' : 'text-slate-600'
+            className={`px-4 py-1.5 rounded-[10px] text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all ${
+              subTab === 'OKR'
+                ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)]'
+                : 'text-slate-600 hover:text-[#0C1B2E]'
             }`}
           >
             <TrendingUp size={15} className="text-[#C69C47]" />
-            <span>Quản lý OKR</span>
+            <span>Mục tiêu OKR ({okrs.length})</span>
           </button>
           <button
             onClick={() => setSubTab('SWOT')}
-            className={`px-4 py-2 rounded-lg text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all ${
-              subTab === 'SWOT' ? 'bg-white text-[#0C1B2E] shadow-sm' : 'text-slate-600'
+            className={`px-4 py-1.5 rounded-[10px] text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all ${
+              subTab === 'SWOT'
+                ? 'bg-white text-[#0C1B2E] shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)]'
+                : 'text-slate-600 hover:text-[#0C1B2E]'
             }`}
           >
             <Grid2x2 size={15} className="text-[#C69C47]" />
@@ -214,23 +337,24 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
         </div>
       </div>
 
-      {/* SUB-TAB OKR */}
+      {/* ─── SUB-TAB OKR ─────────────────────────────────────────────────────── */}
       {subTab === 'OKR' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[13px] font-semibold text-slate-500">
-              {okrs.length} Mục tiêu trọng tâm đang kích hoạt
+              Đang theo dõi {okrs.length} Mục tiêu trọng tâm (Objective)
             </span>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => theoryService.open('OKR')}
                 className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-semibold text-slate-700 inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
-                title="Xem tài liệu lý thuyết & cẩm nang quản trị OKR"
               >
                 <BookOpen size={15} className="text-[#C69C47]" />
-                <span>Lý thuyết OKR</span>
+                <span>Tra cứu OKR</span>
               </button>
               <button
+                type="button"
                 onClick={() => openNewOkr()}
                 className="px-4 py-2 rounded-xl bg-[#0C1B2E] hover:bg-[#162B47] text-white text-[13px] font-semibold inline-flex items-center gap-2 cursor-pointer shadow-sm"
               >
@@ -240,148 +364,285 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
             </div>
           </div>
 
-          {okrs.map((okr) => {
-            const avgProgress =
-              okr.keyResults.length > 0
-                ? Math.round(
-                    okr.keyResults.reduce((acc, kr) => {
-                      const cur = resolveKrCurrentValue(kr);
-                      const pct = kr.targetValue > 0 ? Math.min(100, (cur / kr.targetValue) * 100) : 0;
-                      return acc + pct;
-                    }, 0) / okr.keyResults.length
-                  )
-                : 0;
+          {okrs.length === 0 ? (
+            <div className="axis-card p-10 text-center space-y-3">
+              <div className="text-[14.5px] font-bold text-[#0C1B2E]">
+                Chưa có Mục tiêu OKR nào cho chu kỳ này
+              </div>
+              <p className="text-[12.5px] text-slate-500 max-w-md mx-auto">
+                Hãy tập trung toàn lực công ty vào tối đa 3 Mục tiêu (Objectives) quan trọng nhất trong Quý/Tháng.
+              </p>
+              <button
+                type="button"
+                onClick={() => openNewOkr()}
+                className="px-4 py-2 rounded-xl bg-[#0C1B2E] text-white text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={15} className="text-[#E5C472]" />
+                <span>Tạo Mục tiêu OKR đầu tiên</span>
+              </button>
+            </div>
+          ) : (
+            okrs.map((okr) => {
+              const avgProgress =
+                okr.keyResults.length > 0
+                  ? Math.round(
+                      okr.keyResults.reduce((acc, kr) => {
+                        const cur = resolveKrCurrentValue(kr);
+                        const pct =
+                          kr.targetValue > 0 ? Math.min(100, (cur / kr.targetValue) * 100) : 0;
+                        return acc + pct;
+                      }, 0) / okr.keyResults.length
+                    )
+                  : 0;
 
-            return (
-              <div key={okr.id} className="group axis-card p-5 sm:p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-[#0C1B2E] text-[#F3DA99] text-[11px] font-bold">
-                        {okr.period}
-                      </span>
-                      <span className="text-[12px] font-bold text-emerald-700 tabular-nums">
-                        Tiến độ tổng thể: {avgProgress}%
-                      </span>
+              const linkedTasks = smartTasks.filter((t) => t.linkedOkrId === okr.id);
+              const completedLinkedCount = linkedTasks.filter(
+                (t) => t.status === 'COMPLETED'
+              ).length;
+              const statusMeta = OKR_STATUS_META[okr.status || 'ON_TRACK'];
+
+              return (
+                <div key={okr.id} className="group axis-card p-5 sm:p-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-md bg-[#0C1B2E] text-[#F3DA99] text-[11px] font-bold">
+                          {okr.period}
+                        </span>
+                        <select
+                          value={okr.status || 'ON_TRACK'}
+                          onChange={(e) =>
+                            handleChangeOkrStatus(
+                              okr,
+                              e.target.value as AxisOkrObjective['status']
+                            )
+                          }
+                          className={`px-2 py-0.5 rounded-md border text-[11px] font-bold cursor-pointer ${statusMeta.cls}`}
+                        >
+                          {Object.entries(OKR_STATUS_META).map(([k, meta]) => (
+                            <option key={k} value={k}>
+                              {meta.label}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[12px] font-bold text-emerald-700 tabular-nums">
+                          Tiến độ đạt: {avgProgress}%
+                        </span>
+                      </div>
+                      <h3 className="text-[16.5px] font-extrabold text-[#0C1B2E]">{okr.title}</h3>
+                      {okr.whyItMatters && (
+                        <p className="text-[12.5px] text-slate-500">
+                          Ý nghĩa chiến lược: {okr.whyItMatters}
+                        </p>
+                      )}
                     </div>
-                    <h3 className="text-[16.5px] font-extrabold text-[#0C1B2E]">{okr.title}</h3>
-                    {okr.whyItMatters && (
-                      <p className="text-[12.5px] text-slate-500">
-                        Ý nghĩa chiến lược: {okr.whyItMatters}
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 self-end sm:self-start">
-                    <button
-                      onClick={() => openEditOkr(okr)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-[#0C1B2E] hover:bg-slate-100 cursor-pointer"
-                    >
-                      <Edit3 size={15} />
-                    </button>
-                    <button
-                      onClick={() => deleteOkr(okr)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    style={{ width: `${avgProgress}%` }}
-                    className="h-full bg-gradient-to-r from-[#0C1B2E] to-[#C69C47] transition-all duration-500"
-                  />
-                </div>
-
-                {/* Key Results Table */}
-                <div className="divide-y divide-slate-100 pt-1">
-                  {okr.keyResults.map((kr, idx) => {
-                    const currentVal = resolveKrCurrentValue(kr);
-                    const pct =
-                      kr.targetValue > 0
-                        ? Math.min(100, Math.round((currentVal / kr.targetValue) * 100))
-                        : 0;
-                    const isAuto = kr.autoMetric !== 'NONE';
-
-                    return (
-                      <div
-                        key={kr.id}
-                        className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    <div className="flex items-center gap-1.5 self-end sm:self-start shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onNavigate('execution', {
+                            subTab: 'SMART',
+                            action: 'NEW_TASK',
+                            okrId: okr.id,
+                            okrTitle: okr.title,
+                            prefillTitle: `Thực thi OKR: ${okr.title}`,
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-[#0C1B2E] hover:text-white text-[11.5px] font-bold text-[#0C1B2E] inline-flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Giao đầu việc thực thi gắn với Mục tiêu OKR này"
                       >
-                        <div className="space-y-0.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11.5px] font-bold text-[#9D772B]">
-                              KR{idx + 1}
-                            </span>
-                            <span className="text-[13.5px] font-semibold text-slate-800">
-                              {kr.title}
-                            </span>
-                            {isAuto && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[10.5px] font-semibold">
-                                <Database size={10} />
-                                <span>Live ERP</span>
+                        <Target size={13} />
+                        <span>+ Giao việc</span>
+                      </button>
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditOkr(okr)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#0C1B2E] hover:bg-slate-100 cursor-pointer"
+                          title="Chỉnh sửa OKR"
+                        >
+                          <Edit3 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteOkr(okr)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                          title="Xóa OKR"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      style={{ width: `${avgProgress}%` }}
+                      className="h-full bg-gradient-to-r from-[#0C1B2E] to-[#C69C47] transition-all duration-500"
+                    />
+                  </div>
+
+                  {/* Key Results Table */}
+                  <div className="divide-y divide-slate-100 pt-1">
+                    {okr.keyResults.map((kr, idx) => {
+                      const currentVal = resolveKrCurrentValue(kr);
+                      const pct =
+                        kr.targetValue > 0
+                          ? Math.min(100, Math.round((currentVal / kr.targetValue) * 100))
+                          : 0;
+                      const isAuto = kr.autoMetric !== 'NONE';
+                      const inputDisplay =
+                        krDrafts[kr.id] !== undefined ? krDrafts[kr.id] : String(currentVal);
+
+                      return (
+                        <div
+                          key={kr.id}
+                          className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-0.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[11.5px] font-bold text-[#9D772B]">
+                                KR{idx + 1}
+                              </span>
+                              <span className="text-[13.5px] font-semibold text-slate-800">
+                                {kr.title}
+                              </span>
+                              {isAuto && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[10.5px] font-semibold">
+                                  <Database size={10} />
+                                  <span>Live ERP</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            {!isAuto ? (
+                              <div className="flex items-center gap-1.5 text-[12.5px]">
+                                <input
+                                  type="number"
+                                  value={inputDisplay}
+                                  onChange={(e) =>
+                                    setKrDrafts((prev) => ({
+                                      ...prev,
+                                      [kr.id]: e.target.value,
+                                    }))
+                                  }
+                                  onBlur={() => commitManualKrProgress(okr, kr)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  className="w-16 px-2 py-1 rounded-lg border border-slate-200 text-right font-bold text-[#0C1B2E] tabular-nums"
+                                  title="Nhập tiến độ hiện tại (Enter hoặc click ra ngoài để lưu)"
+                                />
+                                <span className="text-slate-500 tabular-nums">
+                                  / {kr.targetValue} {kr.unit}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[13px] font-bold text-[#0C1B2E] tabular-nums">
+                                {currentVal} / {kr.targetValue} {kr.unit}
                               </span>
                             )}
+                            <span className="w-11 text-right text-[12px] font-extrabold text-emerald-700 tabular-nums">
+                              {pct}%
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onNavigate('execution', {
+                                  subTab: 'SMART',
+                                  action: 'NEW_TASK',
+                                  okrId: okr.id,
+                                  okrTitle: okr.title,
+                                  krTitle: kr.title,
+                                  prefillTitle: kr.title,
+                                })
+                              }
+                              className="px-2 py-1 rounded-lg border border-slate-200 hover:border-[#0C1B2E] text-[11px] font-semibold text-slate-600 hover:text-[#0C1B2E] cursor-pointer"
+                              title="Triển khai KR này thành đầu việc giao cho nhân sự"
+                            >
+                              Giao việc →
+                            </button>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
-                          {!isAuto ? (
-                            <div className="flex items-center gap-1.5 text-[12.5px]">
-                              <input
-                                type="number"
-                                value={currentVal}
-                                onChange={(e) =>
-                                  updateManualKrProgress(okr, kr.id, Number(e.target.value))
-                                }
-                                className="w-16 px-2 py-1 rounded-lg border border-slate-200 text-right font-bold text-[#0C1B2E] tabular-nums"
-                              />
-                              <span className="text-slate-500 tabular-nums">
-                                / {kr.targetValue} {kr.unit}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[13px] font-bold text-[#0C1B2E] tabular-nums">
-                              {currentVal} / {kr.targetValue} {kr.unit}
-                            </span>
-                          )}
-                          <span className="w-12 text-right text-[12px] font-extrabold text-emerald-700 tabular-nums">
-                            {pct}%
-                          </span>
-                        </div>
+                  {/* Linked SMART Tasks Execution Summary */}
+                  {linkedTasks.length > 0 && (
+                    <div className="pt-3 border-t border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between text-[11.5px]">
+                        <span className="font-bold text-slate-600">
+                          🎯 Đầu việc thực thi đang phục vụ OKR này ({completedLinkedCount}/{linkedTasks.length} hoàn thành)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate('execution', { subTab: 'SMART' })}
+                          className="font-bold text-[#9D772B] hover:underline cursor-pointer"
+                        >
+                          Mở bảng Giao việc →
+                        </button>
                       </div>
-                    );
-                  })}
+                      <div className="flex flex-wrap gap-1.5">
+                        {linkedTasks.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => onNavigate('execution', { subTab: 'SMART' })}
+                            className={`px-2.5 py-1 rounded-lg border text-[11.5px] font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              t.status === 'COMPLETED'
+                                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
+                                : t.status === 'AT_RISK'
+                                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                            }`}
+                          >
+                            {t.status === 'COMPLETED' ? (
+                              <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                            ) : (
+                              <Circle size={12} className="text-slate-400 shrink-0" />
+                            )}
+                            <span className="truncate max-w-[220px]">{t.title}</span>
+                            <span className="text-[10.5px] opacity-75">({t.assigneeName})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       )}
 
-      {/* SUB-TAB SWOT */}
+      {/* ─── SUB-TAB SWOT ────────────────────────────────────────────────────── */}
       {subTab === 'SWOT' && (
         <div className="space-y-6">
-          {/* SWOT Toolbar / Header Bar */}
+          {/* SWOT Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
             <div>
               <div className="text-[14px] font-bold text-[#0C1B2E]">
-                Bản đồ Vị thế Chiến lược SWOT & TOWS
+                Bản Đồ Vị Thế Chiến Lược SWOT & Chuyển Hóa Hành Động TOWS
               </div>
               <div className="text-[12px] text-slate-500">
-                Nhìn thấu nội lực và cơ hội thị trường để hoạch định 4 mũi nhọn hành động SO, WO, ST, WT.
+                Ghi nhận trung thực nội lực & thị trường, sau đó chuyển thẳng từng mũi nhọn chiến lược thành OKR hoặc Đầu việc thực thi.
               </div>
             </div>
             <button
+              type="button"
               onClick={() => theoryService.open('SWOT')}
               className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[12.5px] font-semibold text-slate-700 inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
-              title="Xem cẩm nang lý thuyết SWOT & Ma trận TOWS"
             >
               <BookOpen size={15} className="text-[#C69C47]" />
-              <span>Lý thuyết SWOT & TOWS</span>
+              <span>Tra cứu SWOT & TOWS</span>
             </button>
           </div>
 
@@ -391,29 +652,29 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
               {
                 key: 's' as const,
                 field: 'strengths' as const,
-                badge: 'S — STRENGTHS',
-                title: 'Điểm mạnh nội tại',
+                badge: 'S — ĐIỂM MẠNH (STRENGTHS)',
+                title: 'Lợi thế nội tại cần phát huy',
                 accent: 'border-t-4 border-t-emerald-600',
               },
               {
                 key: 'w' as const,
                 field: 'weaknesses' as const,
-                badge: 'W — WEAKNESSES',
-                title: 'Điểm yếu cần khắc phục',
+                badge: 'W — ĐIỂM YẾU (WEAKNESSES)',
+                title: 'Nút thắt nội bộ cần khắc phục',
                 accent: 'border-t-4 border-t-amber-500',
               },
               {
                 key: 'o' as const,
                 field: 'opportunities' as const,
-                badge: 'O — OPPORTUNITIES',
+                badge: 'O — CƠ HỘI (OPPORTUNITIES)',
                 title: 'Cơ hội thị trường & công nghệ',
                 accent: 'border-t-4 border-t-sky-600',
               },
               {
                 key: 't' as const,
                 field: 'threats' as const,
-                badge: 'T — THREATS',
-                title: 'Thách thức & Rủi ro bên ngoài',
+                badge: 'T — THÁCH THỨC (THREATS)',
+                title: 'Rủi ro & Áp lực cạnh tranh bên ngoài',
                 accent: 'border-t-4 border-t-rose-500',
               },
             ].map((q) => (
@@ -432,8 +693,10 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                       >
                         <span>• {item}</span>
                         <button
+                          type="button"
                           onClick={() => removeSwotBullet(q.field, idx)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 shrink-0 cursor-pointer"
+                          title="Xóa ý này"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -463,61 +726,113 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                     onClick={() => addSwotBullet(q.field, q.key)}
                     className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[12px] font-bold text-[#0C1B2E] cursor-pointer"
                   >
-                    +
+                    + Thêm
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* TOWS Action Matrix */}
+          {/* TOWS Action Matrix (Editable + Direct Execution Links) */}
           <div className="axis-card p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-[16px] font-bold text-[#0C1B2E]">
-                  Ma trận Chuyển hóa SWOT → Hành động Chiến lược (TOWS)
+                  Ma Trận Hành Động Chiến Lược TOWS (Chỉnh sửa trực tiếp & Chuyển hóa 1 chạm)
                 </h3>
                 <p className="text-[12.5px] text-slate-500">
-                  Kết hợp 4 góc SWOT thành chiến lược cụ thể và bấm chuyển thẳng sang OKR.
+                  CEO có thể tự biên tập trực tiếp từng ô chiến lược bên dưới hoặc nhờ AI gợi ý từ 4 góc SWOT.
                 </p>
               </div>
               <button
+                type="button"
                 onClick={handleAiGenerateTows}
                 disabled={generatingTows}
-                className="px-4 py-2 rounded-xl bg-[#0C1B2E] text-[#F3DA99] text-[12.5px] font-semibold inline-flex items-center gap-1.5 cursor-pointer self-start"
+                className="px-4 py-2 rounded-xl bg-[#0C1B2E] text-[#F3DA99] text-[12.5px] font-semibold inline-flex items-center gap-1.5 cursor-pointer self-start shrink-0"
               >
                 <Sparkles size={14} />
-                <span>{generatingTows ? 'Đang phân tích...' : 'AI Đề xuất Chiến lược TOWS'}</span>
+                <span>{generatingTows ? 'Đang tổng hợp...' : 'AI Gợi ý 4 Chiến lược TOWS'}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {[
-                { label: 'Chiến lược S-O (Tấn công: Dùng Điểm mạnh đón Cơ hội)', val: currentSwot.towsStrategies.so },
-                { label: 'Chiến lược W-O (Nâng cấp: Khắc phục Điểm yếu để nắm Cơ hội)', val: currentSwot.towsStrategies.wo },
-                { label: 'Chiến lược S-T (Khác biệt: Dùng Điểm mạnh hóa giải Thách thức)', val: currentSwot.towsStrategies.st },
-                { label: 'Chiến lược W-T (Phòng thủ: Kiểm soát rủi ro nội tại)', val: currentSwot.towsStrategies.wt },
-              ].map((st, i) => (
-                <div key={i} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-3">
-                  <div>
-                    <div className="text-[11.5px] font-bold text-[#9D772B] uppercase">{st.label}</div>
-                    <p className="text-[13px] text-slate-700 mt-1.5 leading-relaxed">{st.val}</p>
-                  </div>
-                  <button
-                    onClick={() => openNewOkr(st.val)}
-                    className="self-start text-[12px] font-bold text-[#0C1B2E] hover:text-[#9D772B] inline-flex items-center gap-1 cursor-pointer"
+              {(
+                [
+                  {
+                    key: 'so',
+                    label: 'Chiến lược S-O (Tấn công: Dùng Điểm mạnh đón Cơ hội)',
+                  },
+                  {
+                    key: 'wo',
+                    label: 'Chiến lược W-O (Nâng cấp: Khắc phục Điểm yếu để nắm Cơ hội)',
+                  },
+                  {
+                    key: 'st',
+                    label: 'Chiến lược S-T (Khác biệt: Dùng Điểm mạnh hóa giải Thách thức)',
+                  },
+                  {
+                    key: 'wt',
+                    label: 'Chiến lược W-T (Phòng thủ: Kiểm soát rủi ro nội tại)',
+                  },
+                ] as const
+              ).map((st) => {
+                const val = towsDrafts[st.key] || '';
+                return (
+                  <div
+                    key={st.key}
+                    className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-3"
                   >
-                    <ArrowRightCircle size={13} />
-                    <span>Chuyển thành Mục tiêu OKR</span>
-                  </button>
-                </div>
-              ))}
+                    <div className="space-y-1.5">
+                      <div className="text-[11.5px] font-bold text-[#9D772B] uppercase">
+                        {st.label}
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={val}
+                        onChange={(e) =>
+                          setTowsDrafts((prev) => ({ ...prev, [st.key]: e.target.value }))
+                        }
+                        onBlur={() => saveTowsQuadrant(st.key)}
+                        placeholder="Nhập định hướng hành động cụ thể cho mũi nhọn này..."
+                        className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-700 leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => openNewOkr(val)}
+                        disabled={!val.trim()}
+                        className="text-[12px] font-bold text-[#0C1B2E] hover:text-[#9D772B] disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowRightCircle size={13} />
+                        <span>Lập Mục tiêu OKR</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onNavigate('execution', {
+                            subTab: 'SMART',
+                            action: 'NEW_TASK',
+                            prefillTitle: val,
+                          })
+                        }
+                        disabled={!val.trim()}
+                        className="text-[12px] font-bold text-slate-600 hover:text-[#0C1B2E] disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Target size={13} />
+                        <span>Giao việc thực thi ngay</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL TẠO / SỬA OKR */}
+      {/* ─── MODAL TẠO / SỬA OKR ─────────────────────────────────────────────── */}
       {showOkrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-[2px] overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8">
@@ -530,13 +845,13 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                   type="button"
                   onClick={() => theoryService.open('OKR')}
                   className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100/80 text-[11px] font-bold text-indigo-900 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Tra cứu lý thuyết Quản trị OKR"
                 >
                   <BookOpen size={13} />
-                  <span>Lý thuyết OKR</span>
+                  <span>Tra cứu OKR</span>
                 </button>
               </div>
               <button
+                type="button"
                 onClick={() => setShowOkrModal(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
@@ -545,8 +860,8 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
             </div>
 
             <form onSubmit={handleSaveOkr} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div className="sm:col-span-3">
                   <label className="block text-[12px] font-semibold text-slate-600 mb-1">
                     Chu kỳ
                   </label>
@@ -557,16 +872,34 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px]"
                   />
                 </div>
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-5">
                   <label className="block text-[12px] font-semibold text-slate-600 mb-1">
-                    Objective (Mục tiêu truyền cảm hứng) *
+                    Trạng thái
+                  </label>
+                  <select
+                    value={okrStatus}
+                    onChange={(e) =>
+                      setOkrStatus(e.target.value as AxisOkrObjective['status'])
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold"
+                  >
+                    {Object.entries(OKR_STATUS_META).map(([k, meta]) => (
+                      <option key={k} value={k}>
+                        {meta.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:col-span-12">
+                  <label className="block text-[12px] font-semibold text-slate-600 mb-1">
+                    Objective (Đích đến truyền cảm hứng) *
                   </label>
                   <input
                     type="text"
                     required
                     value={objTitle}
                     onChange={(e) => setObjTitle(e.target.value)}
-                    placeholder="VD: Đưa nhà máy đạt chuẩn giao hàng thần tốc & không lỗi lặp lại"
+                    placeholder="VD: Đưa nhà máy đạt chuẩn giao hàng đúng hẹn & triệt tiêu lỗi lặp lại"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-[13.5px]"
                   />
                 </div>
@@ -580,6 +913,7 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                   type="text"
                   value={whyItMatters}
                   onChange={(e) => setWhyItMatters(e.target.value)}
+                  placeholder="Giải thích ngắn gọn để đội ngũ thấu hiểu ý nghĩa..."
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-[13px]"
                 />
               </div>
@@ -715,4 +1049,3 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     </div>
   );
 };
-
