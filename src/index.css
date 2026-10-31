@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --axis-bg: #F8F9FB;
+  --axis-surface: #FFFFFF;
+  --axis-navy: #0C1B2E;
+  --axis-navy-soft: #162B47;
+  --axis-gold: #C69C47;
+  --axis-gold-light: #EFE3C6;
+  --axis-gold-deep: #9D772B;
+  --axis-border: rgba(226, 232, 240, 0.88);
+  --axis-text-primary: #0F1E32;
+  --axis-text-secondary: #5B6B82;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--axis-bg);
+  color: var(--axis-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Executive Minimalist Card */
+.axis-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(12, 27, 46, 0.025), 0 8px 24px rgba(12, 27, 46, 0.025);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.axis-card:hover {
+  border-color: rgba(203, 213, 225, 0.95);
+}
+
+/* Subtle Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="axisNavyBg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B192C" />
+      <stop offset="55%" stop-color="#10233D" />
+      <stop offset="100%" stop-color="#081322" />
+    </linearGradient>
+    <linearGradient id="axisGoldStroke" x1="20" y1="14" x2="100" y2="106" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F2D994" />
+      <stop offset="45%" stop-color="#D4AE5C" />
+      <stop offset="100%" stop-color="#B08735" />
+    </linearGradient>
+    <linearGradient id="axisGoldFill" x1="48" y1="18" x2="72" y2="75" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F6E1A4" />
+      <stop offset="50%" stop-color="#D9B462" />
+      <stop offset="100%" stop-color="#B58C38" />
+    </linearGradient>
+    <radialGradient id="axisSubtleGlow" cx="60" cy="60" r="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D9B462" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#D9B462" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Luxury Midnight Navy Container -->
+  <rect width="120" height="120" rx="26" fill="url(#axisNavyBg)" />
+  <rect x="2" y="2" width="116" height="116" rx="24" stroke="url(#axisGoldStroke)" stroke-opacity="0.22" stroke-width="1" />
+  <circle cx="60" cy="60" r="46" fill="url(#axisSubtleGlow)" />
+
+  <!-- Outer & Inner Concentric Reference Rings -->
+  <circle cx="60" cy="60" r="36" stroke="url(#axisGoldStroke)" stroke-width="2" />
+  <circle cx="60" cy="60" r="21.5" stroke="url(#axisGoldStroke)" stroke-width="1.35" stroke-opacity="0.82" />
+
+  <!-- Horizontal & Vertical Axis Crosshairs -->
+  <line x1="14" y1="60" x2="106" y2="60" stroke="url(#axisGoldStroke)" stroke-width="1.8" stroke-linecap="round" />
+  <line x1="60" y1="14" x2="60" y2="106" stroke="url(#axisGoldStroke)" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- Strategic North Directional Chevron Arrowhead -->
+  <path d="M60 19.5 L67.2 36.5 L60 31.8 L52.8 36.5 Z" fill="url(#axisGoldFill)" />
+
+  <!-- Core Focal Point (CEO Pivot) -->
+  <circle cx="60" cy="60" r="6.4" fill="url(#axisGoldFill)" />
+  <circle cx="60" cy="60" r="9.4" stroke="url(#axisGoldStroke)" stroke-opacity="0.35" stroke-width="0.9" />
+</svg>
+
