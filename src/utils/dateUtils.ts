@@ -1,5 +1,3 @@
-import { AxisMeeting, AxisPdcaCycle, AxisTrainingSession, MaslowTierKey } from '../types/axisTypes';
-
 /**
  * Lấy chuỗi YYYY-MM-DD theo đúng múi giờ địa phương (tránh lỗi lệch ngày trước 07:00 sáng giờ VN khi dùng toISOString)
  */
@@ -39,6 +37,9 @@ export function daysDiffFromToday(targetYmd: string, todayYmd = getLocalTodayYmd
   return Math.round(diffMs / (24 * 60 * 60 * 1000));
 }
 
+/**
+ * Định dạng nhãn hạn chót tương đối
+ */
 export function formatRelativeDueBadge(targetYmd: string, todayYmd = getLocalTodayYmd()): {
   text: string;
   tone: 'overdue' | 'today' | 'soon' | 'normal';
@@ -56,47 +57,10 @@ export function formatRelativeDueBadge(targetYmd: string, todayYmd = getLocalTod
   return { text: targetYmd, tone: 'normal' };
 }
 
-export const PDCA_PHASE_LABELS: Record<AxisPdcaCycle['currentPhase'], string> = {
-  PLAN: '1. Lập kế hoạch (Plan)',
-  DO: '2. Làm thử nghiệm (Do)',
-  CHECK: '3. Kiểm tra hiệu quả (Check)',
-  ACT: '4. Chuẩn hóa quy trình (Act)',
-  STANDARDIZED: 'Đã chuẩn hóa vào Đào tạo ERP',
-};
-
-export const PDCA_NEXT_PHASE: Partial<
-  Record<AxisPdcaCycle['currentPhase'], AxisPdcaCycle['currentPhase']>
-> = {
-  PLAN: 'DO',
-  DO: 'CHECK',
-  CHECK: 'ACT',
-};
-
-export const MASLOW_TIER_LABELS: Record<MaslowTierKey, string> = {
-  PHYSIOLOGICAL: 'Tầng 1: Thu nhập & Sức khỏe',
-  SAFETY: 'Tầng 2: An toàn & Ổn định',
-  BELONGING: 'Tầng 3: Gắn kết tập thể',
-  ESTEEM: 'Tầng 4: Tôn trọng & Ghi nhận',
-  SELF_ACTUALIZATION: 'Tầng 5: Tự chủ & Phát triển',
-};
-
-export const MEETING_TYPE_LABELS: Record<AxisMeeting['meetingType'], string> = {
-  MEETING_369: 'Họp điều hành 3-6-9',
-  DAILY_BRIEF: 'Giao ban nhanh đầu ngày',
-  STRATEGY: 'Họp Chiến lược & OKR',
-  ONE_ON_ONE: 'Trao đổi 1-1 nhân sự',
-  TRAINING: 'Đào tạo & Chia sẻ nội bộ',
-};
-
-export const TRAINING_TAG_LABELS: Record<AxisTrainingSession['frameworkTag'], string> = {
-  '3-6-9': 'Kỷ luật Họp & Giám sát 3-6-9',
-  PREP: 'Báo cáo gãy gọn PREP',
-  SMART: 'Giao & Nhận việc SMART',
-  PDCA: 'Cải tiến quy trình PDCA',
-  FFC: 'Văn hóa ghi nhận FFC',
-  OKR: 'Tư duy mục tiêu OKR',
-  MASLOW: 'Thấu hiểu động lực Maslow',
-  SWOT: 'Phân tích chiến lược SWOT',
-  SKILL: 'Kỹ năng chuyên môn nhà máy',
-};
-
+/**
+ * Định dạng số thành chuỗi phân cách hàng nghìn kiểu Việt Nam
+ */
+export function formatNumberVi(n: number | undefined | null): string {
+  if (n === undefined || n === null || isNaN(n)) return '0';
+  return new Intl.NumberFormat('vi-VN').format(n);
+}
