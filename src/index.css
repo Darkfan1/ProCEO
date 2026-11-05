@@ -1,16 +1,47 @@
 @import "tailwindcss";
 
-:root {
-  --axis-bg: #F5F6F9;
-  --axis-surface: #FFFFFF;
-  --axis-navy: #0C1B2E;
-  --axis-navy-soft: #162B47;
-  --axis-gold: #C69C47;
-  --axis-gold-light: #EFE3C6;
-  --axis-gold-deep: #9D772B;
-  --axis-border: rgba(0, 0, 0, 0.07);
-  --axis-text-primary: #0F1E32;
-  --axis-text-secondary: #5B6B82;
+:root,
+[data-theme="bento-glass"],
+[data-theme="grayscale-stage"] {
+  --stage-bg-top: #edf0f5;
+  --stage-bg-mid: #e2e7ef;
+  --stage-bg-bot: #d5dce6;
+  --stage-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 246, 250, 0.92) 100%);
+  --sidebar-bg: linear-gradient(180deg, #2b313c 0%, #1d222b 48%, #141820 52%, #0f1319 100%);
+  --sidebar-text: #f1f5f9;
+  --sidebar-muted: #94a3b8;
+  --accent-primary: #334155;
+  --accent-soft: #f1f5f9;
+  --border-outer: rgba(100, 116, 139, 0.34);
+  --border-highlight: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="aubergine-studio"] {
+  --stage-bg-top: #eceef2;
+  --stage-bg-mid: #e0e4ec;
+  --stage-bg-bot: #d3d8e2;
+  --stage-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 245, 248, 0.92) 100%);
+  --sidebar-bg: linear-gradient(180deg, #27272a 0%, #18181b 50%, #09090b 100%);
+  --sidebar-text: #fafafa;
+  --sidebar-muted: #a1a1aa;
+  --accent-primary: #27272a;
+  --accent-soft: #f4f4f5;
+  --border-outer: rgba(113, 113, 122, 0.34);
+  --border-highlight: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="rose-stage"] {
+  --stage-bg-top: #f0f1f4;
+  --stage-bg-mid: #e4e6eb;
+  --stage-bg-bot: #d8dbe2;
+  --stage-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 246, 248, 0.93) 100%);
+  --sidebar-bg: linear-gradient(180deg, #333842 0%, #22262e 50%, #15181e 100%);
+  --sidebar-text: #f8fafc;
+  --sidebar-muted: #94a3b8;
+  --accent-primary: #334155;
+  --accent-soft: #f1f5f9;
+  --border-outer: rgba(100, 116, 139, 0.32);
+  --border-highlight: rgba(255, 255, 255, 0.95);
 }
 
 * {
@@ -23,62 +54,174 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Inter", "Segoe UI", Roboto, sans-serif;
-  background-color: var(--axis-bg);
-  color: var(--axis-text-primary);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", Roboto, sans-serif;
+  background: radial-gradient(130% 90% at 50% 0%, var(--stage-bg-top) 0%, var(--stage-bg-mid) 55%, var(--stage-bg-bot) 100%);
+  background-attachment: fixed;
+  color: #1e293b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.font-serif-display {
-  font-family: -apple-system, BlinkMacSystemFont, 'Playfair Display', Georgia, serif;
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+  letter-spacing: -0.015em;
 }
 
-/* macOS 26 Frosted Glass Card */
-.axis-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  border-radius: 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px rgba(12, 27, 46, 0.035);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+.pretty-text {
+  text-wrap: pretty;
 }
 
-.axis-card:hover {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(12, 27, 46, 0.05);
+.contain-region {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px auto 480px;
 }
 
-/* macOS 26 Sidebar Material */
-.macos-sidebar {
-  background: rgba(246, 246, 248, 0.82);
-  backdrop-filter: blur(30px) saturate(190%);
-  -webkit-backdrop-filter: blur(30px) saturate(190%);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+@supports not (content-visibility: auto) {
+  .contain-region {
+    contain: layout style paint;
+  }
 }
 
-/* macOS 26 Top Toolbar Material */
-.macos-topbar {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+.table-scroll-region {
+  overflow: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
 }
 
-/* macOS 26 Segmented Control */
-.macos-segmented {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px;
+.table-scroll-region table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-scroll-region thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+
+/* ─── WINDOWS VISTA AERO LUXURY 2.5D GRAY DESIGN SYSTEM ───────────────────── */
+.ceo-card {
+  position: relative;
+  background: var(--stage-surface);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  border: 1px solid var(--border-outer);
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow:
+    inset 0 1px 0 var(--border-highlight),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.2),
+    0 8px 20px -6px rgba(15, 23, 42, 0.09),
+    0 2px 5px -1px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-/* macOS Subtle Custom Scrollbars */
+.ceo-card:hover {
+  border-color: rgba(71, 85, 105, 0.45);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    inset 0 -1px 0 rgba(148, 163, 184, 0.28),
+    0 12px 26px -8px rgba(15, 23, 42, 0.13),
+    0 3px 7px -2px rgba(15, 23, 42, 0.07);
+}
+
+/* Vista Smoked Titanium 2.5D Banner / Header Card */
+.vista-hero {
+  position: relative;
+  background: linear-gradient(180deg, #373f4d 0%, #262c37 49%, #1b2029 51%, #141820 100%);
+  color: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 12px 28px -8px rgba(15, 23, 42, 0.28),
+    0 3px 8px rgba(15, 23, 42, 0.16);
+}
+
+/* Vista Aero Smoked Glass Sidebar */
+.ceo-sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    6px 0 24px -4px rgba(15, 23, 42, 0.26);
+}
+
+/* Vista Aero Topbar */
+.vista-topbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 240, 246, 0.88) 100%);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid rgba(100, 116, 139, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 14px -4px rgba(15, 23, 42, 0.07);
+}
+
+/* 2.5D Metallic Buttons */
+.btn-25d-primary {
+  background: linear-gradient(180deg, #4b5565 0%, #2d3542 49%, #1f2530 51%, #151922 100%);
+  color: #f8fafc;
+  border: 1px solid #0f172a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 2px 4px rgba(15, 23, 42, 0.2);
+  transition: all 0.15s ease;
+}
+
+.btn-25d-primary:hover {
+  background: linear-gradient(180deg, #566173 0%, #36404f 49%, #252c38 51%, #1b202b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 4px 8px rgba(15, 23, 42, 0.24);
+}
+
+.btn-25d-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-25d-secondary {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f4f8 50%, #e2e7f0 100%);
+  color: #1e293b;
+  border: 1px solid rgba(100, 116, 139, 0.42);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 1px 3px rgba(15, 23, 42, 0.07);
+  transition: all 0.15s ease;
+}
+
+.btn-25d-secondary:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #eaeff5 100%);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+
+.btn-25d-secondary:active {
+  transform: translateY(1px);
+}
+
+/* 2.5D Recessed Input & Sub-containers inside cards */
+.ceo-card input:not([type="checkbox"]):not([type="range"]),
+.ceo-card select,
+.ceo-card textarea {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 35%, #ffffff 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* Dark 2.5D Select inside Sidebar */
+.ceo-sidebar select {
+  background: linear-gradient(180deg, #2b3240 0%, #1b202b 100%);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Subtle Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -89,19 +232,14 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(100, 116, 139, 0.38);
   border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.55);
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: rgba(71, 85, 105, 0.6);
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
-

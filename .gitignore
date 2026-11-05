@@ -23,3 +23,7 @@ dist-ssr
 .DS_Store
 Thumbs.db
 
+# External / Local Reference Copies
+Protrack*
+
+

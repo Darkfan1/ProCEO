@@ -48,20 +48,87 @@ export const erpService = {
   /**
    * Lấy thông tin tài khoản hiện tại từ Firestore theo uid hoặc email
    */
-  getUserProfile: async (uidOrEmail: string): Promise<ErpUser | null> => {
-    const userDocRef = doc(db, 'users', uidOrEmail);
-    const snap = await getDoc(userDocRef);
-    if (snap.exists()) {
-      return { id: snap.id, ...snap.data() } as ErpUser;
-    }
-    // Query theo email
-    const q = query(collection(db, 'users'), where('email', '==', uidOrEmail), limit(1));
-    const querySnap = await getDocs(q);
-    if (!querySnap.empty) {
-      const d = querySnap.docs[0];
-      return { id: d.id, ...d.data() } as ErpUser;
+  getUserProfile: async (uidOrEmail: string, fallbackEmail?: string | null): Promise<ErpUser | null> => {
+    try {
+      const userDocRef = doc(db, 'users', uidOrEmail);
+      const snap = await getDoc(userDocRef);
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as ErpUser;
+      }
+      // Query theo field id == uidOrEmail
+      const qId = query(collection(db, 'users'), where('id', '==', uidOrEmail), limit(1));
+      const idSnap = await getDocs(qId);
+      if (!idSnap.empty) {
+        const d = idSnap.docs[0];
+        return { id: d.id, ...d.data() } as ErpUser;
+      }
+      // Query theo email
+      const emailToLookup = fallbackEmail || uidOrEmail;
+      if (emailToLookup && emailToLookup.includes('@')) {
+        const q = query(collection(db, 'users'), where('email', '==', emailToLookup), limit(1));
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+          const d = querySnap.docs[0];
+          return { id: d.id, ...d.data() } as ErpUser;
+        }
+      }
+    } catch (err) {
+      console.warn('[erpService] getUserProfile error:', err);
     }
     return null;
+  },
+
+  /**
+   * Tìm tài khoản ERP MVĐN theo Tên đăng nhập (username) hoặc Email khi đăng nhập
+   */
+  getUserByIdentifier: async (identifier: string): Promise<ErpUser | null> => {
+    const clean = identifier.trim();
+    if (!clean) return null;
+
+    // 1. Tìm chính xác theo username
+    const qUsername = query(collection(db, 'users'), where('username', '==', clean), limit(1));
+    const snapUsername = await getDocs(qUsername);
+    if (!snapUsername.empty) {
+      const d = snapUsername.docs[0];
+      return { id: d.id, ...d.data() } as ErpUser;
+    }
+
+    // 2. Tìm chính xác theo email
+    const qEmail = query(collection(db, 'users'), where('email', '==', clean), limit(1));
+    const snapEmail = await getDocs(qEmail);
+    if (!snapEmail.empty) {
+      const d = snapEmail.docs[0];
+      return { id: d.id, ...d.data() } as ErpUser;
+    }
+
+    // 3. Fallback không phân biệt hoa thường (case-insensitive) trên bảng users
+    const allUsersSnap = await getDocs(query(collection(db, 'users'), limit(150)));
+    const lower = clean.toLowerCase();
+    for (const d of allUsersSnap.docs) {
+      const data = d.data() as ErpUser;
+      if (
+        (data.username && data.username.toLowerCase() === lower) ||
+        (data.email && data.email.toLowerCase() === lower)
+      ) {
+        return { id: d.id, ...data };
+      }
+    }
+
+    return null;
+  },
+
+  /**
+   * Kiểm tra tài khoản có quyền ADMIN trên hệ thống ERP MVĐN hay không
+   * (Tuân thủ đúng hàm isAdmin() trong firestore.rules của ERP MVĐN)
+   */
+  isErpAdminUser: (user: ErpUser | null | undefined, authEmail?: string | null): boolean => {
+    const email = (authEmail || user?.email || '').trim().toLowerCase();
+    if (email === 'furywing2608@gmail.com') {
+      return true;
+    }
+    if (!user) return false;
+    const role = (user.role || '').trim().toUpperCase();
+    return role === 'ADMIN' || role === 'DIRECTOR';
   },
 
   /**
@@ -154,3 +221,4 @@ export const erpService = {
     return announcementId;
   },
 };
+
