@@ -39,6 +39,10 @@ import {
   INITIAL_MASLOW_PLANS,
   INITIAL_FFC_PRAISES,
   INITIAL_PREP_MESSAGES,
+  INITIAL_MISSIONS,
+  INITIAL_INITIATIVES,
+  INITIAL_ANDON_ISSUES,
+  INITIAL_DECISIONS,
 } from './services/ceoStorageService';
 import { ceoAiService } from './services/ceoAiService';
 import {
@@ -57,7 +61,13 @@ import {
   NavigationContextIntent,
   OperatingMode,
   isDriActionTask,
+  CeoMission,
+  CeoInitiative,
+  AndonIssue,
+  CeoDecisionItem,
 } from './types/ceoTypes';
+import { PrepDirectiveModal } from './components/common/PrepDirectiveModal';
+import { AndonQuickModal } from './components/common/AndonQuickModal';
 import { ErpUser } from './types/erpTypes';
 import { FrameworkCode } from './data/ceoMindsetData';
 import { getLocalTodayYmd } from './utils/dateUtils';
@@ -241,6 +251,22 @@ export default function App() {
   const [prepMessages, setPrepMessages] = useState<PrepMessage[]>(() =>
     ceoStorageService.getLocalMerged('axis_ceo_prep_docs', INITIAL_PREP_MESSAGES)
   );
+  const [missions, setMissions] = useState<CeoMission[]>(() =>
+    ceoStorageService.getLocalMerged('axis_ceo_missions', INITIAL_MISSIONS)
+  );
+  const [initiatives, setInitiatives] = useState<CeoInitiative[]>(() =>
+    ceoStorageService.getLocalMerged('axis_ceo_initiatives', INITIAL_INITIATIVES)
+  );
+  const [andonIssues, setAndonIssues] = useState<AndonIssue[]>(() =>
+    ceoStorageService.getLocalMerged('axis_ceo_andon', INITIAL_ANDON_ISSUES)
+  );
+  const [decisions, setDecisions] = useState<CeoDecisionItem[]>(() =>
+    ceoStorageService.getLocalMerged('axis_ceo_decisions', INITIAL_DECISIONS)
+  );
+
+  // Modals Điều Hành C-Level
+  const [isPrepModalOpen, setIsPrepModalOpen] = useState(false);
+  const [isAndonModalOpen, setIsAndonModalOpen] = useState(false);
 
   useEffect(() => {
     if (!adminUser) return;
@@ -254,6 +280,10 @@ export default function App() {
       ceoStorageService.subscribeCollection('axis_ceo_coaching', INITIAL_MASLOW_PLANS, setMaslowPlans),
       ceoStorageService.subscribeCollection('axis_ceo_praises', INITIAL_FFC_PRAISES, setFfcPraises),
       ceoStorageService.subscribeCollection('axis_ceo_prep_docs', INITIAL_PREP_MESSAGES, setPrepMessages),
+      ceoStorageService.subscribeCollection('axis_ceo_missions', INITIAL_MISSIONS, setMissions),
+      ceoStorageService.subscribeCollection('axis_ceo_initiatives', INITIAL_INITIATIVES, setInitiatives),
+      ceoStorageService.subscribeCollection('axis_ceo_andon', INITIAL_ANDON_ISSUES, setAndonIssues),
+      ceoStorageService.subscribeCollection('axis_ceo_decisions', INITIAL_DECISIONS, setDecisions),
     ];
     return () => unsubs.forEach((u) => u());
   }, [adminUser]);
@@ -278,6 +308,18 @@ export default function App() {
     setOkrs((prev) => mergeWithSampleSeeds('axis_ceo_okrs', prev, realSeeds.okrs));
     setSwotBoards((prev) => mergeWithSampleSeeds('axis_ceo_swot', prev, realSeeds.swotBoards));
     setMaslowPlans((prev) => mergeWithSampleSeeds('axis_ceo_coaching', prev, realSeeds.maslowPlans));
+    if ((realSeeds as any).missions) {
+      setMissions((prev) => mergeWithSampleSeeds('axis_ceo_missions', prev, (realSeeds as any).missions));
+    }
+    if ((realSeeds as any).initiatives) {
+      setInitiatives((prev) => mergeWithSampleSeeds('axis_ceo_initiatives', prev, (realSeeds as any).initiatives));
+    }
+    if ((realSeeds as any).andonIssues) {
+      setAndonIssues((prev) => mergeWithSampleSeeds('axis_ceo_andon', prev, (realSeeds as any).andonIssues));
+    }
+    if ((realSeeds as any).decisionItems) {
+      setDecisions((prev) => mergeWithSampleSeeds('axis_ceo_decisions', prev, (realSeeds as any).decisionItems));
+    }
     setFfcPraises((prev) => mergeWithSampleSeeds('axis_ceo_praises', prev, realSeeds.ffcPraises));
     setPrepMessages((prev) => mergeWithSampleSeeds('axis_ceo_prep_docs', prev, realSeeds.prepMessages));
   }, [erpLoaded, lsxOrders, staffDirectory, machines, intakes, radarMetrics]);
@@ -697,6 +739,105 @@ export default function App() {
     }
   };
 
+  // ─── HANDLERS HỆ THỐNG ĐIỀU HÀNH 4 TẦNG & QUYẾT ĐỊNH CEO ─────────────────────
+  const handleSavePrepPlan = async (payload: {
+    mission: CeoMission;
+    okr: OkrObjective;
+    initiatives: CeoInitiative[];
+    tasks: SmartTask[];
+  }) => {
+    await ceoStorageService.upsertItem('axis_ceo_missions', payload.mission, missions, setMissions);
+    await ceoStorageService.upsertItem('axis_ceo_okrs', payload.okr, okrs, setOkrs);
+    for (const init of payload.initiatives) {
+      await ceoStorageService.upsertItem('axis_ceo_initiatives', init, initiatives, setInitiatives);
+    }
+    for (const t of payload.tasks) {
+      await ceoStorageService.upsertItem('axis_ceo_tasks', t, smartTasks, setSmartTasks);
+    }
+  };
+
+  const handleSaveAndonIssue = async (payload: {
+    issue: AndonIssue;
+    correctiveTask: SmartTask;
+    decisionItem?: CeoDecisionItem;
+  }) => {
+    await ceoStorageService.upsertItem('axis_ceo_andon', payload.issue, andonIssues, setAndonIssues);
+    await ceoStorageService.upsertItem('axis_ceo_tasks', payload.correctiveTask, smartTasks, setSmartTasks);
+    if (payload.decisionItem) {
+      await ceoStorageService.upsertItem('axis_ceo_decisions', payload.decisionItem, decisions, setDecisions);
+    }
+  };
+
+  const handleResolveDecision = async (
+    decisionId: string,
+    resolution: 'APPROVED' | 'REJECTED',
+    note?: string
+  ) => {
+    const dec = decisions.find((d) => d.id === decisionId);
+    if (!dec) return;
+    const updatedDec: CeoDecisionItem = {
+      ...dec,
+      status: resolution,
+      resolutionNote: note,
+      resolvedAt: new Date().toISOString(),
+    };
+    await ceoStorageService.upsertItem('axis_ceo_decisions', updatedDec, decisions, setDecisions);
+
+    // Nếu là Task bị Blocked, tự động gỡ trạng thái BLOCKED khi CEO phê duyệt!
+    if (dec.type === 'BLOCKED_TASK' && dec.linkedEntityId && resolution === 'APPROVED') {
+      const task = smartTasks.find((t) => t.id === dec.linkedEntityId);
+      if (task) {
+        const unblockedTask: SmartTask = {
+          ...task,
+          status: 'IN_PROGRESS',
+          escalatedToCeo: false,
+        };
+        await ceoStorageService.upsertItem('axis_ceo_tasks', unblockedTask, smartTasks, setSmartTasks);
+        dialogService.toast(`Đã phê duyệt và giải tỏa thành công tác vụ "${task.title}"!`, 'success');
+        return;
+      }
+    }
+
+    // Nếu là sự cố Andon dừng dòng, chuyển trạng thái sự cố sang ACTION_IN_PROGRESS
+    if (dec.type === 'ANDON_ESCALATION' && dec.linkedEntityId && resolution === 'APPROVED') {
+      const issue = andonIssues.find((i) => i.id === dec.linkedEntityId);
+      if (issue) {
+        const updatedIssue: AndonIssue = {
+          ...issue,
+          status: 'ACTION_IN_PROGRESS',
+        };
+        await ceoStorageService.upsertItem('axis_ceo_andon', updatedIssue, andonIssues, setAndonIssues);
+        dialogService.toast(`CEO đã phê duyệt phương án xử lý sự cố Andon ${issue.issueCode}!`, 'success');
+        return;
+      }
+    }
+
+    dialogService.toast(
+      `Đã ghi nhận quyết định của CEO (${resolution === 'APPROVED' ? 'Phê duyệt' : 'Từ chối'}).`,
+      'info'
+    );
+  };
+
+  const handleEscalateBlockedTask = async (
+    task: SmartTask,
+    reason: string,
+    decisionNeeded: string
+  ) => {
+    const decItem: CeoDecisionItem = {
+      id: `dec-blocked-${task.id}`,
+      type: 'BLOCKED_TASK',
+      title: `[TÁC VỤ BỊ CHẶN] ${task.title}`,
+      requestedBy: task.assigneeName,
+      requestedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      reason,
+      decisionNeeded,
+      urgency: task.priority === 'URGENT' ? 'URGENT' : 'HIGH',
+      status: 'PENDING',
+      linkedEntityId: task.id,
+    };
+    await ceoStorageService.upsertItem('axis_ceo_decisions', decItem, decisions, setDecisions);
+  };
+
   // Số hiệu badge trên menu
   const todayYmd = getLocalTodayYmd();
   const pendingTodaySchedules = schedules.filter(
@@ -847,6 +988,14 @@ export default function App() {
               maslowPlans={maslowPlans}
               ffcPraises={ffcPraises}
               prepMessages={prepMessages}
+              missions={missions}
+              initiatives={initiatives}
+              andonIssues={andonIssues}
+              decisions={decisions}
+              onOpenPrepModal={() => setIsPrepModalOpen(true)}
+              onOpenAndonModal={() => setIsAndonModalOpen(true)}
+              onResolveDecision={handleResolveDecision}
+              onUpdateTask={handleSaveSmartTask}
               onNavigateTab={handleNavigateTab}
               onToggleScheduleDone={handleToggleScheduleDone}
               aiBriefing={aiBriefing}
@@ -989,6 +1138,7 @@ export default function App() {
             <ProjectTasksView
               tasks={smartTasks}
               onSaveTask={handleSaveSmartTask}
+              onEscalateBlockedTask={handleEscalateBlockedTask}
               onDeleteTask={(id) =>
                 ceoStorageService.removeItem('axis_ceo_tasks', id, smartTasks, setSmartTasks)
               }
@@ -1170,6 +1320,20 @@ export default function App() {
           )}
           </div>
         </main>
+        {/* MODALS HỆ THỐNG ĐIỀU HÀNH 4 TẦNG C-LEVEL */}
+        <PrepDirectiveModal
+          isOpen={isPrepModalOpen}
+          onClose={() => setIsPrepModalOpen(false)}
+          onSave={handleSavePrepPlan}
+          staffDirectory={staffDirectory}
+        />
+
+        <AndonQuickModal
+          isOpen={isAndonModalOpen}
+          onClose={() => setIsAndonModalOpen(false)}
+          onSave={handleSaveAndonIssue}
+          staffDirectory={staffDirectory}
+        />
       </div>
     </div>
   );

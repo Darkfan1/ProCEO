@@ -1303,4 +1303,216 @@ Yêu cầu xuất JSON:
     // Phản hồi mẫu dự phòng ngoại tuyến
     return `[Chế độ Ngoại Tuyến / ProCEO Advisory]\nĐã tiếp nhận yêu cầu điều hành: "${params.userMessage.slice(0, 80)}...".\nKhuyến nghị ưu tiên: Rà soát các mục tiêu SMART có hạn chót trong tuần, đối chiếu kết quả kiểm tra với chu trình PDCA và triệu tập họp 3-6-9 với DRI phụ trách để giải quyết điểm nghẽn.`;
   },
+
+  /**
+   * 12. AI Phân Tích Chỉ Thị PREP Của CEO & Tự Động Thiết Lập Kế Hoạch 4 Tầng
+   */
+  parsePrepToFourTierPlan: async (input: {
+    point: string;
+    reason: string;
+    evidence: string;
+    action: string;
+    driName: string;
+    timeframe?: string;
+    targetDate?: string;
+    budgetOrAuthority?: string;
+    mainRisk?: string;
+  }): Promise<{
+    missionTitle: string;
+    timeframe: string;
+    driName: string;
+    objectiveTitle: string;
+    keyResults: Array<{
+      title: string;
+      baselineValue: number;
+      targetValue: number;
+      unit: string;
+      driName: string;
+    }>;
+    initiatives: Array<{
+      title: string;
+      hypothesis: string;
+      driName: string;
+      targetDate: string;
+    }>;
+    tasks: Array<{
+      title: string;
+      driName: string;
+      approverName: string;
+      supporters: string[];
+      priority: 'URGENT' | 'HIGH' | 'NORMAL';
+      dueDate: string;
+      specific: string;
+      measurable: string;
+    }>;
+  }> => {
+    const today = new Date().toISOString().slice(0, 10);
+    const targetDate = input.targetDate || today;
+    const timeframe = input.timeframe || '30 ngày tới';
+    const primaryDri = input.driName || 'Quản Đốc Sản Xuất';
+
+    const apiKey = getApiKey();
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `Bạn là Trợ lý Cố vấn Chiến lược C-Level và Chuyên gia Quản trị Vận hành Nhà máy (Lean/OEE/TOC).
+CEO vừa ban hành một "Chỉ thị Điều hành" theo cấu trúc PREP:
+- POINT (Mục tiêu cốt lõi): "${input.point}"
+- REASON (Vì sao quan trọng): "${input.reason}"
+- EVIDENCE (Bằng chứng & Số liệu thực tế): "${input.evidence}"
+- ACTION (Chỉ đạo hành động & Phân công): "${input.action}"
+- THỜI HẠN: "${timeframe}" (Hạn chót: ${targetDate})
+- DRI TỐI CAO (Single DRI): "${primaryDri}"
+- NGÂN SÁCH/QUYỀN HẠN: "${input.budgetOrAuthority || 'Theo thẩm quyền quy định'}"
+- RỦI RO CHÍNH: "${input.mainRisk || 'Chưa xác định'}"
+
+Nhiệm vụ: Phân rã chỉ thị PREP này thành hệ thống điều hành 4 tầng khép kín:
+1. missionTitle: Khẩu hiệu hành động cấp CEO, ngắn gọn, gắn mục tiêu với thời hạn.
+2. objectiveTitle: Mục tiêu định tính truyền cảm hứng theo chuẩn OKR.
+3. keyResults (2 đến 3 kết quả then chốt): Đo lường được, PHẢI CÓ baselineValue (Hiện trạng), targetValue (Mục tiêu), unit (phút, %, lỗi, triệu VNĐ), và driName (1 người duy nhất).
+4. initiatives (1 đến 2 dự án PDCA): Có giả thuyết giải pháp kỹ thuật cụ thể.
+5. tasks (2 đến 3 hành động cụ thể): Rõ ràng, driName (1 người duy nhất), approverName, supporters (mảng string), priority, dueDate, specific, measurable.
+
+TRẢ VỀ DUY NHẤT một chuỗi JSON hợp lệ theo schema sau (không thêm bất kỳ văn bản nào khác ngoài JSON):
+{
+  "missionTitle": "string",
+  "timeframe": "${timeframe}",
+  "driName": "${primaryDri}",
+  "objectiveTitle": "string",
+  "keyResults": [
+    {
+      "title": "string",
+      "baselineValue": 60,
+      "targetValue": 42,
+      "unit": "phút",
+      "driName": "${primaryDri}"
+    }
+  ],
+  "initiatives": [
+    {
+      "title": "string",
+      "hypothesis": "string",
+      "driName": "${primaryDri}",
+      "targetDate": "${targetDate}"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "string",
+      "driName": "${primaryDri}",
+      "approverName": "CEO Tôn Đăng Vũ",
+      "supporters": ["Trưởng BP Kỹ Thuật", "QA/QC"],
+      "priority": "HIGH",
+      "dueDate": "${targetDate}",
+      "specific": "string",
+      "measurable": "string"
+    }
+  ]
+}`;
+
+        const res = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+
+        const rawText = res.text || '';
+        const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        if (parsed.missionTitle && Array.isArray(parsed.keyResults) && parsed.keyResults.length > 0) {
+          return {
+            missionTitle: String(parsed.missionTitle),
+            timeframe: String(parsed.timeframe || timeframe),
+            driName: String(parsed.driName || primaryDri),
+            objectiveTitle: String(parsed.objectiveTitle || `Tối ưu hóa & Đạt đột phá: ${input.point}`),
+            keyResults: parsed.keyResults.map((kr: any) => ({
+              title: String(kr.title || 'Kết quả then chốt'),
+              baselineValue: Number(kr.baselineValue ?? 0),
+              targetValue: Number(kr.targetValue ?? 100),
+              unit: String(kr.unit || '%'),
+              driName: String(kr.driName || primaryDri),
+            })),
+            initiatives: Array.isArray(parsed.initiatives)
+              ? parsed.initiatives.map((init: any) => ({
+                  title: String(init.title || 'Dự án cải tiến PDCA'),
+                  hypothesis: String(init.hypothesis || 'Áp dụng giải pháp kỹ thuật chuẩn hóa để đạt KR'),
+                  driName: String(init.driName || primaryDri),
+                  targetDate: String(init.targetDate || targetDate),
+                }))
+              : [],
+            tasks: Array.isArray(parsed.tasks)
+              ? parsed.tasks.map((t: any) => ({
+                  title: String(t.title || 'Hành động cụ thể'),
+                  driName: String(t.driName || primaryDri),
+                  approverName: String(t.approverName || 'CEO Tôn Đăng Vũ'),
+                  supporters: Array.isArray(t.supporters) ? t.supporters : ['Đội ngũ vận hành'],
+                  priority: (t.priority === 'URGENT' || t.priority === 'HIGH' || t.priority === 'NORMAL' ? t.priority : 'HIGH') as any,
+                  dueDate: String(t.dueDate || targetDate),
+                  specific: String(t.specific || t.title || ''),
+                  measurable: String(t.measurable || 'Hoàn thành đúng hạn và có báo cáo nghiệm thu'),
+                }))
+              : [],
+          };
+        }
+      } catch (err) {
+        console.warn('AI PREP Parsing Error, using offline domain logic:', err);
+      }
+    }
+
+    // Logic ngoại tuyến thông minh (Domain Logic)
+    const missionTitle = `[Chiến Lược] ${input.point.trim()} (${timeframe})`;
+    const objectiveTitle = `Nâng cao hiệu suất vận hành & Kiểm soát chất lượng vượt trội: ${input.point}`;
+
+    return {
+      missionTitle,
+      timeframe,
+      driName: primaryDri,
+      objectiveTitle,
+      keyResults: [
+        {
+          title: `Đạt mục tiêu chỉ số định lượng: ${input.point.slice(0, 60)}`,
+          baselineValue: 100,
+          targetValue: 70,
+          unit: '% hoặc phút',
+          driName: primaryDri,
+        },
+        {
+          title: '100% các công đoạn tuân thủ quy trình kiểm soát chất lượng & an toàn',
+          baselineValue: 75,
+          targetValue: 100,
+          unit: '% tuân thủ',
+          driName: 'Trưởng BP QA/QC',
+        },
+      ],
+      initiatives: [
+        {
+          title: `Triển khai dự án cải tiến: ${input.point.slice(0, 50)}`,
+          hypothesis: `Áp dụng chuẩn hóa thao tác và phân bổ nguồn lực sẽ giải quyết triệt để vấn đề: ${input.reason.slice(0, 80)}`,
+          driName: primaryDri,
+          targetDate,
+        },
+      ],
+      tasks: [
+        {
+          title: `Khảo sát hiện trạng chi tiết và ban hành checklist: ${input.point.slice(0, 45)}`,
+          driName: primaryDri,
+          approverName: 'Tôn Đăng Vũ (CEO)',
+          supporters: ['Trưởng BP Kỹ Thuật', 'Quản Đốc Phân Xưởng'],
+          priority: 'URGENT',
+          dueDate: targetDate,
+          specific: `Thực hiện đánh giá hiện trường dựa trên bằng chứng: ${input.evidence.slice(0, 80)}`,
+          measurable: 'Ban hành bảng tiêu chuẩn thao tác được phê duyệt và đào tạo 100% thợ máy',
+        },
+        {
+          title: `Họp triển khai hành động: ${input.action.slice(0, 50)}`,
+          driName: primaryDri,
+          approverName: 'Tôn Đăng Vũ (CEO)',
+          supporters: ['Bộ Phận Sản Xuất', 'Bộ Phận Kỹ Thuật'],
+          priority: 'HIGH',
+          dueDate: targetDate,
+          specific: `Tổ chức phối hợp các bên theo phân công: ${input.action.slice(0, 80)}`,
+          measurable: 'Biên bản thống nhất phương án và cam kết tiến độ từ các bộ phận liên quan',
+        },
+      ],
+    };
+  },
 };

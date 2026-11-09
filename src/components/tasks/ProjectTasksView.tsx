@@ -45,6 +45,7 @@ export interface ProjectTasksViewProps {
   onDeleteTask: (id: string) => Promise<void> | void;
   onFollowUpTask: (task: SmartTask) => Promise<void> | void;
   onUpdateTaskStatus: (task: SmartTask, nextStatus: SmartTask['status']) => void;
+  onEscalateBlockedTask?: (task: SmartTask, reason: string, decisionNeeded: string) => Promise<void> | void;
 
   schedules: ScheduleItem[];
   onSaveSchedule: (item: ScheduleItem) => Promise<void> | void;
@@ -138,6 +139,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
   onDeleteTask,
   onFollowUpTask,
   onUpdateTaskStatus,
+  onEscalateBlockedTask,
 
   schedules,
   onSaveSchedule,
@@ -170,6 +172,68 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
 
   // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+
+  // Blocker & Escalation Modal State
+  const [blockingTask, setBlockingTask] = useState<SmartTask | null>(null);
+  const [blockerReasonInput, setBlockerReasonInput] = useState('');
+  const [blockerDecisionInput, setBlockerDecisionInput] = useState('');
+
+  const handleConfirmDri = async (task: SmartTask) => {
+    const updated: SmartTask = {
+      ...task,
+      driConfirmed: true,
+      driConfirmedAt: todayYmd,
+    };
+    await onSaveTask(updated);
+    dialogService.toast(`DRI ${task.assigneeName} đã xác nhận nhận việc cam kết!`, 'success');
+  };
+
+  const handleOpenBlockerModal = (task: SmartTask) => {
+    setBlockingTask(task);
+    setBlockerReasonInput(task.blockerReason || '');
+    setBlockerDecisionInput(task.blockerDecisionNeeded || '');
+  };
+
+  const handleSubmitBlocker = async () => {
+    if (!blockingTask) return;
+    if (!blockerReasonInput.trim()) {
+      dialogService.toast('Vui lòng nhập lý do bị chặn/tắc nghẽn.', 'warning');
+      return;
+    }
+    if (!blockerDecisionInput.trim()) {
+      dialogService.toast('Vui lòng nêu rõ quyết định mong muốn từ CEO.', 'warning');
+      return;
+    }
+
+    const updated: SmartTask = {
+      ...blockingTask,
+      status: 'BLOCKED',
+      blockerReason: blockerReasonInput.trim(),
+      blockerDecisionNeeded: blockerDecisionInput.trim(),
+      escalatedToCeo: true,
+      escalatedAt: todayYmd,
+    };
+
+    await onSaveTask(updated);
+    if (onEscalateBlockedTask) {
+      await onEscalateBlockedTask(updated, blockerReasonInput.trim(), blockerDecisionInput.trim());
+    }
+
+    setBlockingTask(null);
+    dialogService.toast('Đã báo điểm nghẽn và đưa vào Hộp Quyết Định của CEO!', 'success');
+  };
+
+  const handleUnblockTask = async (task: SmartTask) => {
+    const updated: SmartTask = {
+      ...task,
+      status: 'IN_PROGRESS',
+      blockerReason: undefined,
+      blockerDecisionNeeded: undefined,
+      escalatedToCeo: false,
+    };
+    await onSaveTask(updated);
+    dialogService.toast(`Đã gỡ nghẽn cho tác vụ "${task.title}"!`, 'success');
+  };
   const [editingTask, setEditingTask] = useState<SmartTask | null>(null);
 
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -1027,19 +1091,49 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                           </div>
                         </td>
 
-                        {/* Cột 2: DRI Phụ trách */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10.5px] font-bold text-slate-700 shrink-0">
-                              {task.assigneeName ? task.assigneeName.charAt(0) : 'U'}
+                        {/* Cột 2: DRI Phụ trách (Single DRI + RACI) */}
+                        <td className="py-3 px-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10.5px] font-bold text-slate-700 shrink-0">
+                                {task.assigneeName ? task.assigneeName.charAt(0) : 'U'}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-slate-800 text-xs truncate">
+                                  {task.assigneeName}
+                                </div>
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {task.department}
+                                </div>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <div className="font-semibold text-slate-800 text-xs truncate">
-                                {task.assigneeName}
-                              </div>
-                              <div className="text-[10.5px] text-slate-400 truncate">
-                                {task.department}
-                              </div>
+
+                            {/* Trạng thái xác nhận nhận việc SLA 24h */}
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {task.driConfirmed ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  ✓ Đã nhận việc
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    ⏳ Chờ nhận việc
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleConfirmDri(task)}
+                                    className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs cursor-pointer"
+                                    title="Xác nhận nhận việc theo SLA 24h"
+                                  >
+                                    Nhận việc
+                                  </button>
+                                </div>
+                              )}
+                              {task.approverName && (
+                                <span className="text-[9.5px] text-slate-500 font-medium" title={`Người phê duyệt: ${task.approverName}`}>
+                                  (A: {task.approverName.split(' ')[0]})
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1097,18 +1191,36 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
 
                         {/* Cột 6: Trạng thái */}
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <select
-                            value={task.status}
-                            onChange={(e) =>
-                              onUpdateTaskStatus(task, e.target.value as SmartTask['status'])
-                            }
-                            className="px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-800 cursor-pointer outline-none focus:border-slate-400"
-                          >
-                            <option value="TODO">Cần làm</option>
-                            <option value="IN_PROGRESS">Đang làm</option>
-                            <option value="REVIEW">Chờ duyệt</option>
-                            <option value="DONE">Hoàn tất</option>
-                          </select>
+                          <div className="space-y-1">
+                            <select
+                              value={task.status}
+                              onChange={(e) => {
+                                const nextSt = e.target.value as SmartTask['status'];
+                                if (nextSt === 'BLOCKED') {
+                                  handleOpenBlockerModal(task);
+                                } else {
+                                  onUpdateTaskStatus(task, nextSt);
+                                }
+                              }}
+                              className={`px-2 py-1 rounded-lg border text-[11px] font-semibold cursor-pointer outline-none focus:border-slate-400 ${
+                                task.status === 'BLOCKED'
+                                  ? 'bg-rose-50 border-rose-300 text-rose-800 font-bold'
+                                  : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <option value="TODO">Cần làm</option>
+                              <option value="IN_PROGRESS">Đang làm</option>
+                              <option value="BLOCKED">🚫 Bị chặn (Blocked)</option>
+                              <option value="REVIEW">Chờ duyệt</option>
+                              <option value="DONE">Hoàn tất</option>
+                            </select>
+
+                            {task.status === 'BLOCKED' && (
+                              <div className="text-[9.5px] text-rose-700 font-bold max-w-[130px] truncate" title={task.blockerDecisionNeeded || task.blockerReason}>
+                                ⚠️ Cần CEO gỡ nghẽn
+                              </div>
+                            )}
+                          </div>
                         </td>
 
                         {/* Cột 7: Đôn đốc CEO */}
@@ -1132,6 +1244,27 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                         {/* Cột 8: Thao tác (Quy chuẩn User Rule 2: ẩn mặc định, hover hiện) */}
                         <td className="py-3 px-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {task.status === 'BLOCKED' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUnblockTask(task)}
+                                className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10.5px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                title="Giải tỏa điểm nghẽn cho tác vụ này"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Gỡ nghẽn</span>
+                              </button>
+                            ) : task.status !== 'DONE' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenBlockerModal(task)}
+                                className="px-2 py-0.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10.5px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                title="Báo tắc nghẽn và đưa vào Hộp Quyết Định của CEO"
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>Báo nghẽn</span>
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() =>
@@ -1295,7 +1428,92 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
         </div>
       )}
 
-      {/* ─── MODAL 1: THÊM / SỬA TÁC VỤ DRI ─────────────────────────────────── */}
+            {/* MODAL BÁO NGHẼN / BLOCKED (LEO THANG LÊN CEO DECISION BOX) */}
+      {blockingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-rose-200 overflow-hidden space-y-4 p-5">
+            <div className="flex items-center justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-rose-500 text-white font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">
+                    Báo Điểm Nghẽn / Blocked Lên CEO
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Tác vụ sẽ được chuyển sang trạng thái BLOCKED và đẩy trực tiếp vào Decision Box của CEO.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBlockingTask(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="font-bold text-slate-800 block">Tác vụ đang bị chặn:</span>
+                <span className="text-slate-700">{blockingTask.title}</span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Single DRI: {blockingTask.assigneeName} • Hạn: {blockingTask.dueDate}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-800 block">
+                  1. Lý do bị chặn / nút thắt cổ chai là gì? (*)
+                </label>
+                <textarea
+                  rows={2}
+                  value={blockerReasonInput}
+                  onChange={(e) => setBlockerReasonInput(e.target.value)}
+                  placeholder="VD: Chi phí sửa chữa vượt thẩm quyền 10 triệu; nhà cung cấp yêu cầu cọc..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-rose-500 resize-none font-medium text-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-800 block">
+                  2. Cần CEO quyết định điều gì hôm nay? (*)
+                </label>
+                <textarea
+                  rows={2}
+                  value={blockerDecisionInput}
+                  onChange={(e) => setBlockerDecisionInput(e.target.value)}
+                  placeholder="VD: CEO ký duyệt chi 9.25 triệu tạm ứng để bên bán xuất cảm biến ngay chiều nay..."
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-rose-500 resize-none font-medium text-indigo-900"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setBlockingTask(null)}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitBlocker}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 cursor-pointer flex items-center gap-1.5 transition-all"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>🚨 Đẩy Lên Quyết Định Của CEO</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+{/* ─── MODAL 1: THÊM / SỬA TÁC VỤ DRI ─────────────────────────────────── */}
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">

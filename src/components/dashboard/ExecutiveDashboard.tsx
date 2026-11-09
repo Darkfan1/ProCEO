@@ -27,6 +27,14 @@ import {
   AlertCircle,
   Factory,
   PackageCheck,
+  AlertOctagon,
+  Flame,
+  Wrench,
+  ShieldAlert,
+  CheckCheck,
+  Lightbulb,
+  PlayCircle,
+  Eye,
 } from 'lucide-react';
 import {
   ScheduleItem,
@@ -40,6 +48,10 @@ import {
   PrepMessage,
   CeoTabId,
   isDriActionTask,
+  CeoMission,
+  CeoInitiative,
+  AndonIssue,
+  CeoDecisionItem,
 } from '../../types/ceoTypes';
 import {
   ErpRadarMetrics,
@@ -65,6 +77,14 @@ interface ExecutiveDashboardProps {
   maslowPlans: MaslowEmployeePlan[];
   ffcPraises: FfcPraiseRecord[];
   prepMessages: PrepMessage[];
+  missions?: CeoMission[];
+  initiatives?: CeoInitiative[];
+  andonIssues?: AndonIssue[];
+  decisions?: CeoDecisionItem[];
+  onOpenPrepModal?: () => void;
+  onOpenAndonModal?: () => void;
+  onResolveDecision?: (decisionId: string, decision: 'APPROVED' | 'REJECTED', note?: string) => Promise<void> | void;
+  onUpdateTask?: (task: SmartTask) => Promise<void> | void;
   onNavigateTab: (tab: CeoTabId, subView?: string, prefill?: any) => void;
   onToggleScheduleDone: (item: ScheduleItem) => Promise<void> | void;
   aiBriefing: { analysis: string; topThreeActions: string[] } | null;
@@ -93,6 +113,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   maslowPlans,
   ffcPraises,
   prepMessages,
+  missions = [],
+  initiatives = [],
+  andonIssues = [],
+  decisions = [],
+  onOpenPrepModal,
+  onOpenAndonModal,
+  onResolveDecision,
+  onUpdateTask,
   onNavigateTab,
   onToggleScheduleDone,
   aiBriefing,
@@ -205,8 +233,424 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   // 6. Nhân sự & Động lực
   const activeWorkersToday = radarMetrics?.activeWorkersToday ?? (staffDirectory.length > 0 ? Math.round(staffDirectory.length * 0.7) : 0);
 
+  // 7. Quyết định chờ CEO (Decision Box)
+  const pendingDecisions = useMemo(() => {
+    return decisions.filter((d) => d.status === 'PENDING');
+  }, [decisions]);
+
+  // 8. Tác vụ bị Blocked
+  const blockedTasks = useMemo(() => {
+    return smartTasks.filter((t) => t.status === 'BLOCKED');
+  }, [smartTasks]);
+
+  // 9. Cảnh báo quy tắc tự động (Rule-based Alerts)
+  const ruleBasedAlerts = useMemo(() => {
+    const alerts: Array<{
+      id: string;
+      type: 'DRI_UNCONFIRMED' | 'TASK_BLOCKED' | 'ANDON_STOP' | 'TASK_OVERDUE';
+      severity: 'CRITICAL' | 'WARNING' | 'INFO';
+      title: string;
+      description: string;
+      owner: string;
+      actionLabel: string;
+      onAction?: () => void;
+    }> = [];
+
+    // Rule 1: Dừng dòng Andon
+    andonIssues.forEach((issue) => {
+      if (issue.severity === 'LINE_STOP' && issue.status !== 'CLOSED_STANDARDIZED') {
+        alerts.push({
+          id: `alert-andon-${issue.id}`,
+          type: 'ANDON_STOP',
+          severity: 'CRITICAL',
+          title: `Dừng dây chuyền: ${issue.lineOrMachine}`,
+          description: issue.description,
+          owner: issue.driName,
+          actionLabel: 'Xử lý Andon',
+          onAction: () => onNavigateTab('erp-bridge'),
+        });
+      }
+    });
+
+    // Rule 2: Tác vụ bị Blocked
+    blockedTasks.forEach((t) => {
+      alerts.push({
+        id: `alert-blocked-${t.id}`,
+        type: 'TASK_BLOCKED',
+        severity: 'CRITICAL',
+        title: `Task bị chặn: ${t.title}`,
+        description: t.blockerDecisionNeeded || t.blockerReason || 'Cần quyết định tháo gỡ điểm nghẽn.',
+        owner: t.assigneeName,
+        actionLabel: 'Gỡ nghẽn',
+        onAction: () => onNavigateTab('tasks'),
+      });
+    });
+
+    // Rule 3: Single DRI chưa nhận việc > 24h
+    smartTasks.forEach((t) => {
+      if (t.status !== 'DONE' && t.driConfirmed === false) {
+        alerts.push({
+          id: `alert-dri-${t.id}`,
+          type: 'DRI_UNCONFIRMED',
+          severity: 'WARNING',
+          title: `Chưa nhận việc: ${t.title}`,
+          description: `Giao cho ${t.assigneeName} nhưng chưa xác nhận cam kết (SLA 24h).`,
+          owner: t.assigneeName,
+          actionLabel: 'Đôn đốc DRI',
+          onAction: () => onNavigateTab('tasks'),
+        });
+      }
+    });
+
+    // Rule 4: Tác vụ quá hạn
+    smartTasks.forEach((t) => {
+      if (t.status !== 'DONE' && t.dueDate < todayYmd) {
+        alerts.push({
+          id: `alert-overdue-${t.id}`,
+          type: 'TASK_OVERDUE',
+          severity: 'WARNING',
+          title: `Quá hạn: ${t.title}`,
+          description: `Hạn chót ngày ${t.dueDate}. Tiến độ ${t.progress || 0}%.`,
+          owner: t.assigneeName,
+          actionLabel: 'Đôn đốc',
+          onAction: () => onNavigateTab('tasks'),
+        });
+      }
+    });
+
+    return alerts;
+  }, [andonIssues, blockedTasks, smartTasks, todayYmd, onNavigateTab]);
+
   return (
     <div id="executive-dashboard-print" className="space-y-4">
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* 0. THANH HÀNH ĐỘNG C-LEVEL CỐT LÕI (PREP DIRECTIVE & ANDON SỐ)     */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/90 border border-slate-200/90 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-sm tracking-tighter shadow-xs">
+            CEO
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm sm:text-base text-slate-900 tracking-tight">
+                Trung Tâm Điều Hành C-Level
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-[10px] font-bold text-indigo-700">
+                Chu trình 4 Tầng Khép Kín
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Chỉ thị PREP ➔ Mục tiêu OKR ➔ Dự án PDCA ➔ Tác vụ Single DRI & Andon Số
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {onOpenPrepModal && (
+            <button
+              type="button"
+              onClick={onOpenPrepModal}
+              className="px-3.5 py-2 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>+ Ban Hành Chỉ Thị (PREP)</span>
+            </button>
+          )}
+
+          {onOpenAndonModal && (
+            <button
+              type="button"
+              onClick={onOpenAndonModal}
+              className="px-3.5 py-2 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+            >
+              <AlertOctagon className="w-3.5 h-3.5" />
+              <span>🚨 Báo Sự Cố Andon</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* HỘP QUYẾT ĐỊNH CẦN CEO HÔM NAY (DECISION BOX - ĐƯA VIỆC CẦN QUYẾT LÊN ĐẦU) */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-amber-500 text-white font-bold">
+              <Clock className="w-4 h-4" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Hộp Quyết Định Cần CEO Hôm Nay
+                </h3>
+                <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
+                  pendingDecisions.length > 0
+                    ? 'bg-rose-500 text-white animate-pulse'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {pendingDecisions.length} việc cần quyết
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Nguyên tắc: CEO không lục tìm task lẻ — Hệ thống đưa trực tiếp các điểm nghẽn, đề xuất ngân sách và sự cố cần quyết lên đầu.
+              </p>
+            </div>
+          </div>
+
+          <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+            1-Click Phê Duyệt / Giải Tỏa
+          </span>
+        </div>
+
+        {pendingDecisions.length === 0 ? (
+          <div className="p-3.5 rounded-xl bg-white/80 border border-dashed border-emerald-200 text-xs text-emerald-800 flex items-center justify-between">
+            <div className="flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Toàn bộ các luồng công việc đang thông suốt. Không có quyết định hoặc điểm nghẽn nào bị ứ đọng chờ CEO.</span>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              100% On-Track
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {pendingDecisions.map((dec) => (
+              <div
+                key={dec.id}
+                className="p-3.5 rounded-xl bg-white border border-amber-200/90 shadow-2xs hover:border-amber-400 transition-all space-y-2.5 flex flex-col justify-between"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      dec.type === 'BLOCKED_TASK'
+                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                        : dec.type === 'ANDON_ESCALATION'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                        : 'bg-blue-100 text-blue-800 border border-blue-200'
+                    }`}>
+                      {dec.type === 'BLOCKED_TASK'
+                        ? '🚫 Task Bị Blocked'
+                        : dec.type === 'ANDON_ESCALATION'
+                        ? '🚨 Sự Cố Dừng Dòng'
+                        : '📋 Đề Xuất Phê Duyệt'}
+                    </span>
+
+                    <span className="text-[10.5px] text-slate-400 font-mono">
+                      {dec.requestedAt}
+                    </span>
+                  </div>
+
+                  <h4 className="font-bold text-xs text-slate-900 leading-snug">
+                    {dec.title}
+                  </h4>
+
+                  <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <strong className="text-slate-800">Lý do nghẽn:</strong> {dec.reason}
+                  </p>
+
+                  <p className="text-[11px] text-indigo-900 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+                    <strong className="text-indigo-800">Cần CEO quyết:</strong> {dec.decisionNeeded}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-slate-500 truncate">
+                    👤 Yêu cầu: {dec.requestedBy}
+                  </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (onResolveDecision) {
+                          await onResolveDecision(dec.id, 'APPROVED', 'CEO đã phê duyệt thông qua.');
+                        } else {
+                          dec.status = 'APPROVED';
+                          dialogService.toast('Đã phê duyệt quyết định!', 'success');
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs cursor-pointer transition-colors flex items-center gap-1"
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>Phê Duyệt</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (onResolveDecision) {
+                          await onResolveDecision(dec.id, 'REJECTED', 'CEO yêu cầu điều chỉnh lại phương án.');
+                        } else {
+                          dec.status = 'REJECTED';
+                          dialogService.toast('Đã từ chối và yêu cầu điều chỉnh.', 'info');
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] cursor-pointer transition-colors"
+                    >
+                      <span>Từ Chối</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* 3–5 NHIỆM VỤ CHIẾN LƯỢC CẤP CEO ĐANG THEO DÕI (TIER 1 - MISSIONS)   */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {missions.length > 0 && (
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-600 text-white font-bold">
+                <Target className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Mục Tiêu Chiến Lược Đang Theo Dõi (Missions)
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                    {missions.length} mục tiêu
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Gắn trực tiếp với cấu trúc PREP, kết quả đo lường KR và Single DRI chịu trách nhiệm cao nhất.
+                </p>
+              </div>
+            </div>
+
+            {onOpenPrepModal && (
+              <button
+                type="button"
+                onClick={onOpenPrepModal}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+              >
+                + Ban hành chỉ thị mới →
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {missions.slice(0, 3).map((m) => (
+              <div
+                key={m.id}
+                className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 transition-all space-y-2.5 shadow-2xs flex flex-col justify-between"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] border border-indigo-200">
+                      {m.timeframe}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      m.status === 'ON_TRACK'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {m.status === 'ON_TRACK' ? 'Đúng hạn' : 'Cần chú ý'}
+                    </span>
+                  </div>
+
+                  <h4 className="font-bold text-xs text-slate-900 leading-snug line-clamp-2">
+                    {m.title}
+                  </h4>
+
+                  {m.prep?.point && (
+                    <p className="text-[11px] text-slate-600 line-clamp-2 italic bg-white p-2 rounded-lg border border-slate-100">
+                      &quot;{m.prep.point}&quot;
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 font-medium">Tiến độ tổng thể</span>
+                    <span className="font-mono font-bold text-slate-900">{m.progress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-600 rounded-full transition-all"
+                      style={{ width: `${m.progress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[10.5px] text-slate-600 font-semibold truncate pt-0.5">
+                    <span className="truncate">👤 DRI: {m.driName}</span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab('okr')}
+                      className="text-indigo-600 hover:underline shrink-0"
+                    >
+                      Xem OKR →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* HỆ THỐNG CẢNH BÁO QUY TẮC TỰ ĐỘNG (RULE-BASED ALERTS WIDGET)         */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {ruleBasedAlerts.length > 0 && (
+        <div className="rounded-2xl border border-rose-200/80 bg-rose-50/30 p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <h4 className="font-extrabold text-xs text-rose-950 uppercase tracking-wide">
+                Cảnh Báo Vận Hành Tự Động Theo Quy Tắc ({ruleBasedAlerts.length})
+              </h4>
+            </div>
+            <span className="text-[10.5px] text-rose-700 font-medium">
+              Tự động cảnh báo: DRI chưa nhận việc &gt; 24h • Nhiệm vụ bị Blocked • Sự cố dừng dòng
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {ruleBasedAlerts.slice(0, 3).map((alert) => (
+              <div
+                key={alert.id}
+                className="p-2.5 rounded-xl bg-white border border-rose-100 shadow-2xs space-y-1.5 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-slate-900 truncate">
+                      {alert.title}
+                    </span>
+                    <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
+                      alert.severity === 'CRITICAL' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {alert.severity === 'CRITICAL' ? 'Khẩn cấp' : 'Nhắc nhở'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5">
+                    {alert.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10.5px]">
+                  <span className="text-slate-500 truncate">👤 {alert.owner}</span>
+                  {alert.onAction && (
+                    <button
+                      type="button"
+                      onClick={alert.onAction}
+                      className="font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                    >
+                      {alert.actionLabel} →
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* 1. AI EXECUTIVE BRIEFING (FROSTED SMOKED TITANIUM GLASS)            */}
       {/* ─────────────────────────────────────────────────────────────────── */}
@@ -769,7 +1213,214 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* 4. 2 CỘT DƯỚI: TIẾN ĐỘ OKR QUÝ (6/12) + CON NGƯỜI & ĐỘNG LỰC (6/12) */}
+            {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* 5. BẢNG SỰ CỐ VÀ KHẮC PHỤC ANDON SỐ (ISSUE & ACTION KANBAN BOARD)     */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-rose-600 text-white font-bold">
+              <AlertOctagon className="w-4 h-4" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Bảng Điều Phối Sự Cố & Hành Động Khắc Phục (Andon Board)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
+                  {andonIssues.length} sự cố
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Luồng khép kín: Báo sự cố ➔ Giao Single DRI ➔ Phân tích 5 Whys ➔ Hành động khắc phục ➔ Chuẩn hóa SOP.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onOpenAndonModal && (
+              <button
+                type="button"
+                onClick={onOpenAndonModal}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+              >
+                <AlertOctagon className="w-3.5 h-3.5" />
+                <span>+ Báo Sự Cố Mới</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onNavigateTab('erp-bridge')}
+              className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline cursor-pointer"
+            >
+              Xem xưởng in Flexo →
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Cột Kanban: Mới báo -> Đang khắc phục & 5 Whys -> Kiểm chứng & Chuẩn hóa */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* CỘT 1: MỚI BÁO CÁO / PHÂN LOẠI */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200 pb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>1. Mới Báo / Phân Loại</span>
+              </span>
+              <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded font-mono">
+                {andonIssues.filter((i) => i.status === 'REPORTED' || i.status === 'TRIAGING').length}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {andonIssues.filter((i) => i.status === 'REPORTED' || i.status === 'TRIAGING').length === 0 ? (
+                <div className="p-3 text-center text-[11px] text-slate-400 italic">
+                  Không có sự cố mới chờ phân loại.
+                </div>
+              ) : (
+                andonIssues
+                  .filter((i) => i.status === 'REPORTED' || i.status === 'TRIAGING')
+                  .map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1.5 text-xs hover:border-slate-300 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-[10.5px] text-slate-800">
+                          {issue.issueCode}
+                        </span>
+                        <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
+                          issue.severity === 'LINE_STOP'
+                            ? 'bg-rose-100 text-rose-800'
+                            : issue.severity === 'CRITICAL'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {issue.severity === 'LINE_STOP' ? 'Dừng dòng' : issue.severity === 'CRITICAL' ? 'Nghiêm trọng' : 'Nhẹ'}
+                        </span>
+                      </div>
+                      <div className="font-semibold text-slate-900 leading-snug line-clamp-2">
+                        {issue.lineOrMachine}: {issue.description}
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                        <span>👤 {issue.driName}</span>
+                        <span>{issue.detectedAt.slice(11, 16)}</span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* CỘT 2: ĐANG KHẮC PHỤC & 5 WHYS */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200 pb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span>2. Đang Xử Lý & 5 Whys</span>
+              </span>
+              <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded font-mono">
+                {andonIssues.filter((i) => i.status === 'ACTION_IN_PROGRESS' || i.status === 'RCA').length}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {andonIssues.filter((i) => i.status === 'ACTION_IN_PROGRESS' || i.status === 'RCA').length === 0 ? (
+                <div className="p-3 text-center text-[11px] text-slate-400 italic">
+                  Không có sự cố đang xử lý.
+                </div>
+              ) : (
+                andonIssues
+                  .filter((i) => i.status === 'ACTION_IN_PROGRESS' || i.status === 'RCA')
+                  .map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-2.5 rounded-lg bg-white border border-blue-200/80 shadow-2xs space-y-1.5 text-xs hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-[10.5px] text-blue-900">
+                          {issue.issueCode}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          Đang khắc phục
+                        </span>
+                      </div>
+                      <div className="font-semibold text-slate-900 leading-snug line-clamp-2">
+                        {issue.lineOrMachine}
+                      </div>
+                      {issue.correctiveActionTitle && (
+                        <div className="text-[11px] text-indigo-700 bg-indigo-50/60 p-1.5 rounded border border-indigo-100 font-medium">
+                          🛠️ {issue.correctiveActionTitle}
+                        </div>
+                      )}
+                      {issue.fiveWhys && issue.fiveWhys.length > 0 && (
+                        <div className="text-[10px] text-slate-500 flex items-center gap-1 font-semibold">
+                          <span>🔍 Đã có {issue.fiveWhys.length} bước 5 Whys</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                        <span>DRI: {issue.driName}</span>
+                        <span className="text-indigo-600 font-bold">Hạn: {issue.correctiveActionDueDate || 'Hôm nay'}</span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
+          {/* CỘT 3: KIỂM CHỨNG & CHUẨN HÓA SOP */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 border-b border-slate-200 pb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>3. Kiểm Chứng & SOP</span>
+              </span>
+              <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded font-mono">
+                {andonIssues.filter((i) => i.status === 'VERIFICATION' || i.status === 'CLOSED_STANDARDIZED').length}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {andonIssues.filter((i) => i.status === 'VERIFICATION' || i.status === 'CLOSED_STANDARDIZED').length === 0 ? (
+                <div className="p-3 text-center text-[11px] text-slate-400 italic">
+                  Chưa có sự cố nào đóng gói vào SOP.
+                </div>
+              ) : (
+                andonIssues
+                  .filter((i) => i.status === 'VERIFICATION' || i.status === 'CLOSED_STANDARDIZED')
+                  .map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-2.5 rounded-lg bg-white border border-emerald-200/80 shadow-2xs space-y-1.5 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-[10.5px] text-emerald-900">
+                          {issue.issueCode}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-emerald-100 text-emerald-800">
+                          {issue.status === 'CLOSED_STANDARDIZED' ? 'Đã đóng SOP' : 'Đang kiểm chứng'}
+                        </span>
+                      </div>
+                      <div className="font-medium text-slate-800 line-clamp-1">
+                        {issue.lineOrMachine}
+                      </div>
+                      {issue.preventiveAction && (
+                        <div className="text-[10.5px] text-emerald-800 bg-emerald-50 p-1.5 rounded border border-emerald-100 italic">
+                          🛡️ {issue.preventiveAction}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                        DRI: {issue.driName}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+{/* 4. 2 CỘT DƯỚI: TIẾN ĐỘ OKR QUÝ (6/12) + CON NGƯỜI & ĐỘNG LỰC (6/12) */}
       {/* ─────────────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* CỘT TRÁI (6/12): TIẾN ĐỘ OKR QUÝ */}

@@ -22,6 +22,10 @@ import {
   SwotBoard,
   SwotEntry,
   TowsStrategicAction,
+  CeoMission,
+  CeoInitiative,
+  AndonIssue,
+  CeoDecisionItem,
 } from '../types/ceoTypes';
 import {
   ErpLsxOrder,
@@ -220,7 +224,99 @@ export function buildRealErpSeeds(params?: ErpSeedParams) {
     },
   ];
 
+  const missions: CeoMission[] = [
+    {
+      id: 'sample-mission-01',
+      title: 'Tối ưu hóa năng suất & Kéo giảm 30% thời gian setup dây chuyền in Flexo trong 30 ngày',
+      timeframe: '30 ngày (Tháng 11/2026)',
+      startDate: currentToday,
+      targetDate: addLocalDaysYmd(30, currentToday),
+      driName: `${staffName1} (${staffRole1})`,
+      status: 'ON_TRACK',
+      progress: 35,
+      prep: {
+        point: 'Giảm 30% thời gian setup máy in Flexo và bế decal trong 30 ngày tới.',
+        reason: 'Setup chậm làm giảm năng suất toàn xưởng, tạo nút thắt cổ chai và đe dọa kế hoạch giao hàng OTD cho các khách hàng VIP.',
+        evidence: 'Dữ liệu ERP 4 tuần gần nhất cho thấy setup trung bình 60 phút/lượt; hao hụt decal lên bài in chiếm 3.8% tổng sản lượng.',
+        action: 'Sản xuất là Single DRI chịu trách nhiệm kết quả; QA và Kỹ thuật là Supporter phối hợp; check-in số liệu hằng tuần.',
+        budgetOrAuthority: 'Được quyền điều chỉnh ca kíp và duyệt mua dụng cụ gá kẹp nhanh SMED dưới 25 triệu VNĐ.',
+        mainRisk: 'Thợ máy quen nếp cũ, không tuân thủ checklist; cần đào tạo và giám sát chặt chẽ.',
+      },
+      linkedOkrIds: ['sample-okr-01'],
+      linkedInitiativeIds: ['sample-init-01', 'sample-init-02'],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const initiatives: CeoInitiative[] = [
+    {
+      id: 'sample-init-01',
+      missionId: 'sample-mission-01',
+      linkedOkrId: 'sample-okr-01',
+      linkedKrId: 'sample-kr-01',
+      title: 'Triển khai phương pháp SMED tách biệt Internal/External setup trên các dây chuyền Flexo',
+      hypothesis: 'Chuẩn bị sẵn cuộn decal, mực in và bản in trước khi dừng máy cũ sẽ cắt giảm ít nhất 18 phút thời gian máy dừng.',
+      driName: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      targetDate: addLocalDaysYmd(15, currentToday),
+      status: 'IN_PROGRESS',
+      pdcaPhase: 'DO',
+      taskIds: ['sample-dri-01', 'sample-smart-02'],
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-init-02',
+      missionId: 'sample-mission-01',
+      linkedOkrId: 'sample-okr-01',
+      linkedKrId: 'sample-kr-02',
+      title: 'Xây dựng checklist số hóa chuẩn bị setup, phê duyệt bài in đầu tiên (First-Piece Approval) và Andon số',
+      hypothesis: 'Thợ máy không được chạy hàng loạt khi chưa có chữ ký QA phê duyệt bài in mẫu đầu tiên, ngăn chặn hoàn toàn rủi ro in lệch màu hàng loạt.',
+      driName: 'Nguyễn Thị Lan (Trưởng BP QA/QC)',
+      targetDate: addLocalDaysYmd(20, currentToday),
+      status: 'IN_PROGRESS',
+      pdcaPhase: 'PLAN',
+      taskIds: ['sample-smart-03'],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
   const smartTasks: SmartTask[] = [
+    {
+      id: 'sample-task-blocked-01',
+      missionId: 'sample-mission-01',
+      initiativeId: 'sample-init-01',
+      taskType: 'DRI_ACTION',
+      title: 'Mua bổ sung cảm biến lực căng điện tử và dao bế tròn dự phòng cho dây chuyền Flexo',
+      department: 'Phòng Kỹ Thuật & Mua Hàng',
+      domain: 'SUPPLY_CHAIN',
+      assigneeName: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      assigneeRole: 'Trưởng BP Kỹ Thuật',
+      approverName: 'Tôn Đăng Vũ (CEO)',
+      supporters: ['Nguyễn Văn Huy (Mua Hàng)', 'Kế Toán Kho'],
+      consulted: ['Quản Đốc Sản Xuất'],
+      informed: ['Ban Giám Đốc'],
+      driConfirmed: true,
+      driConfirmedAt: currentToday,
+      dueDate: currentToday,
+      dueTime: '17:00',
+      priority: 'URGENT',
+      status: 'BLOCKED',
+      progress: 40,
+      smart: {
+        specific: 'Trang bị 01 bộ cảm biến lực căng tự động và 01 dao bế tròn dự phòng cho máy Flexo.',
+        measurable: 'Lắp đặt hoàn thiện và nghiệm thu chạy thử nghiệm không rung lắc trước ngày mai.',
+        achievable: 'Nhà cung cấp sẵn hàng trong kho tại TP.HCM, giao hàng trong 4 giờ.',
+        relevant: 'Tránh dừng máy đột ngột khi chạy các đơn hàng tem dược phẩm độ chính xác cao.',
+        timeBound: 'Cần quyết định ngân sách trước 15:00 hôm nay.',
+      },
+      smartScore: 90,
+      blockerReason: 'Chi phí báo giá là 18.5 triệu VNĐ, vượt thẩm quyền phê duyệt của Trưởng phòng Kỹ thuật (hạn mức 10 triệu). Nhà cung cấp yêu cầu tạm ứng 50% để xuất kho.',
+      blockerDecisionNeeded: 'CEO phê duyệt duyệt chi tạm ứng 9.25 triệu VNĐ để nhà cung cấp giao cảm biến ngay chiều nay.',
+      escalatedToCeo: true,
+      escalatedAt: currentToday,
+      followUpCount: 1,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
     {
       id: 'sample-smart-01',
       title: `Thúc đẩy tiến độ & Kiểm soát chất lượng LSX ${lsxCode} (${customer})`,
@@ -638,7 +734,86 @@ export function buildRealErpSeeds(params?: ErpSeedParams) {
     },
   ];
 
+  const andonIssues: AndonIssue[] = [
+    {
+      id: 'sample-andon-01',
+      issueCode: 'ANDON-20261109-01',
+      category: 'MACHINE_STOP',
+      severity: 'LINE_STOP',
+      lineOrMachine: `Dây chuyền máy in ${machineName}`,
+      productOrLsxCode: lsxCode,
+      shift: 'Ca 1 (Sáng)',
+      stage: 'Công đoạn In Flexo',
+      description: `Máy in dừng khẩn cấp do trục bản in trạm 3 bị kẹt màng decal, nguy cơ trễ tiến độ giao đơn hàng ${lsxCode} (${customer}).`,
+      reportedBy: `${staffName1} (Quản đốc xưởng)`,
+      detectedAt: `${currentToday} 09:15`,
+      driName: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      status: 'ACTION_IN_PROGRESS',
+      correctiveActionTaskId: 'sample-smart-02',
+      correctiveActionTitle: `Căn chỉnh lại áp lực trục và thông màng kẹt trên ${machineName}`,
+      correctiveActionDueDate: currentToday,
+      fiveWhys: [
+        'Tại sao máy dừng? Vì màng decal bị kẹt và quấn vào trục in số 3.',
+        'Tại sao màng bị quấn? Vì lực căng màng bị chùng đột ngột.',
+        'Tại sao lực căng bị chùng? Vì cảm biến lực căng cũ bị bám bụi mực và báo sai tín hiệu.',
+        'Tại sao bám bụi mực? Vì tấm chắn bảo vệ cảm biến bị gãy chưa được thay thế.',
+        'Tại sao chưa thay thế? Vì thiếu checklist kiểm tra tấm chắn bảo vệ trong ca bảo dưỡng tuần.',
+      ],
+      preventiveAction: 'Lắp tấm chắn bảo vệ mới và cập nhật hạng mục kiểm tra cảm biến vào SOP bảo trì tuần.',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-andon-02',
+      issueCode: 'ANDON-20261109-02',
+      category: 'QUALITY_DEFECT',
+      severity: 'CRITICAL',
+      lineOrMachine: 'Máy bế decal tự động 02',
+      productOrLsxCode: 'LSX-GC-2710',
+      shift: 'Ca 1 (Sáng)',
+      stage: 'Công đoạn Bế tem',
+      description: 'Dao bế bị mòn góc mép làm tem bị dính răng cưa, tỷ lệ lỗi phát hiện tại bàn KCS đạt 4.5%.',
+      reportedBy: 'Nguyễn Thị Lan (QA/QC)',
+      detectedAt: `${currentToday} 10:45`,
+      driName: `${staffName2} (Thiết Kế & Kỹ Thuật)`,
+      status: 'TRIAGING',
+      correctiveActionTitle: 'Mài lại lưỡi dao bế và kiểm tra 100% cuộn tem trước khi sang tổ đóng gói',
+      correctiveActionDueDate: currentToday,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const decisionItems: CeoDecisionItem[] = [
+    {
+      id: 'dec-01',
+      type: 'BLOCKED_TASK',
+      title: 'Phê duyệt chi ngân sách 9.25 triệu tạm ứng mua cảm biến lực căng điện tử (Task bị Blocked)',
+      requestedBy: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      requestedAt: `${currentToday} 09:30`,
+      reason: 'Vượt hạn mức duyệt của cấp Trưởng phòng, cần linh kiện gấp để dây chuyền không bị dừng.',
+      decisionNeeded: 'CEO ký duyệt chi ngân sách tạm ứng 50% để giao hàng trong 4 giờ.',
+      urgency: 'URGENT',
+      status: 'PENDING',
+      linkedEntityId: 'sample-task-blocked-01',
+    },
+    {
+      id: 'dec-02',
+      type: 'ANDON_ESCALATION',
+      title: `Bố trí tăng ca máy ${machineName} từ 18:00 - 22:00 giải quyết sự cố Andon dừng dòng`,
+      requestedBy: `${staffName1} (Quản đốc xưởng)`,
+      requestedAt: `${currentToday} 10:00`,
+      reason: `Sự cố kẹt màng làm mất 45 phút ca sáng, cần chạy bù sản lượng để kịp xe giao hàng ${customer}.`,
+      decisionNeeded: 'CEO phê duyệt phụ cấp tăng ca cho 04 thợ máy ca phụ tối nay.',
+      urgency: 'HIGH',
+      status: 'PENDING',
+      linkedEntityId: 'sample-andon-01',
+    },
+  ];
+
   return {
+    missions,
+    initiatives,
+    andonIssues,
+    decisionItems,
     schedules,
     smartTasks,
     pdcaCycles,
@@ -652,6 +827,10 @@ export function buildRealErpSeeds(params?: ErpSeedParams) {
 }
 
 const defaultBundle = buildRealErpSeeds();
+export const INITIAL_MISSIONS: CeoMission[] = defaultBundle.missions;
+export const INITIAL_INITIATIVES: CeoInitiative[] = defaultBundle.initiatives;
+export const INITIAL_ANDON_ISSUES: AndonIssue[] = defaultBundle.andonIssues;
+export const INITIAL_DECISIONS: CeoDecisionItem[] = defaultBundle.decisionItems;
 export const INITIAL_SCHEDULES: ScheduleItem[] = defaultBundle.schedules;
 export const INITIAL_SMART_TASKS: SmartTask[] = defaultBundle.smartTasks;
 export const INITIAL_PDCA_CYCLES: PdcaCycle[] = defaultBundle.pdcaCycles;
@@ -910,6 +1089,77 @@ function normalizeDocument(collectionName: string, raw: any): any {
     } satisfies PrepMessage;
   }
 
+  if (collectionName.includes('missions')) {
+    return {
+      ...raw,
+      id: String(raw.id || `mission-${Date.now()}`),
+      title: String(raw.title || 'Nhiệm vụ chiến lược'),
+      timeframe: String(raw.timeframe || '30 ngày'),
+      startDate: String(raw.startDate || today),
+      targetDate: String(raw.targetDate || today),
+      driName: String(raw.driName || 'Quản Đốc Sản Xuất'),
+      status: raw.status || 'ON_TRACK',
+      progress: Number(raw.progress || 0),
+      prep: {
+        point: String(raw.prep?.point || ''),
+        reason: String(raw.prep?.reason || ''),
+        evidence: String(raw.prep?.evidence || ''),
+        action: String(raw.prep?.action || ''),
+        budgetOrAuthority: String(raw.prep?.budgetOrAuthority || ''),
+        mainRisk: String(raw.prep?.mainRisk || ''),
+      },
+      linkedOkrIds: Array.isArray(raw.linkedOkrIds) ? raw.linkedOkrIds : [],
+      linkedInitiativeIds: Array.isArray(raw.linkedInitiativeIds) ? raw.linkedInitiativeIds : [],
+      createdAt: String(raw.createdAt || new Date().toISOString()),
+    } satisfies CeoMission;
+  }
+
+  if (collectionName.includes('initiatives')) {
+    return {
+      ...raw,
+      id: String(raw.id || `init-${Date.now()}`),
+      title: String(raw.title || 'Dự án cải tiến PDCA'),
+      driName: String(raw.driName || 'Trưởng BP Kỹ Thuật'),
+      targetDate: String(raw.targetDate || today),
+      status: raw.status || 'IN_PROGRESS',
+      pdcaPhase: raw.pdcaPhase || 'PLAN',
+      taskIds: Array.isArray(raw.taskIds) ? raw.taskIds : [],
+      createdAt: String(raw.createdAt || new Date().toISOString()),
+    } satisfies CeoInitiative;
+  }
+
+  if (collectionName.includes('andon')) {
+    return {
+      ...raw,
+      id: String(raw.id || `andon-${Date.now()}`),
+      issueCode: String(raw.issueCode || `ANDON-${Date.now()}`),
+      category: raw.category || 'OTHER',
+      severity: raw.severity || 'MINOR',
+      lineOrMachine: String(raw.lineOrMachine || 'Dây chuyền sản xuất'),
+      description: String(raw.description || ''),
+      reportedBy: String(raw.reportedBy || 'Thợ máy'),
+      detectedAt: String(raw.detectedAt || new Date().toISOString()),
+      driName: String(raw.driName || 'Trưởng BP Kỹ Thuật'),
+      status: raw.status || 'REPORTED',
+      createdAt: String(raw.createdAt || new Date().toISOString()),
+    } satisfies AndonIssue;
+  }
+
+  if (collectionName.includes('decisions')) {
+    return {
+      ...raw,
+      id: String(raw.id || `dec-${Date.now()}`),
+      type: raw.type || 'BLOCKED_TASK',
+      title: String(raw.title || 'Quyết định cần xử lý'),
+      requestedBy: String(raw.requestedBy || 'Nhân viên'),
+      requestedAt: String(raw.requestedAt || new Date().toISOString()),
+      reason: String(raw.reason || ''),
+      decisionNeeded: String(raw.decisionNeeded || ''),
+      urgency: raw.urgency || 'NORMAL',
+      status: raw.status || 'PENDING',
+    } satisfies CeoDecisionItem;
+  }
+
   return raw;
 }
 
@@ -998,6 +1248,10 @@ function saveLocal<T>(key: string, items: T[]): void {
 let dynamicSeedsBundle = defaultBundle;
 
 function getCollectionSeeds<T extends { id: string }>(collectionName: string, fallback: T[]): T[] {
+  if (collectionName.includes('missions')) return (dynamicSeedsBundle.missions as any) || fallback;
+  if (collectionName.includes('initiatives')) return (dynamicSeedsBundle.initiatives as any) || fallback;
+  if (collectionName.includes('andon')) return (dynamicSeedsBundle.andonIssues as any) || fallback;
+  if (collectionName.includes('decisions')) return (dynamicSeedsBundle.decisionItems as any) || fallback;
   if (collectionName.includes('schedules')) return (dynamicSeedsBundle.schedules as any) || fallback;
   if (collectionName.includes('tasks')) return (dynamicSeedsBundle.smartTasks as any) || fallback;
   if (collectionName.includes('pdca')) return (dynamicSeedsBundle.pdcaCycles as any) || fallback;

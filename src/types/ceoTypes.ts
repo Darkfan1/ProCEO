@@ -21,25 +21,87 @@ export type OperatingMode = 'PERSONAL' | 'ORGANIZATION';
 
 export type StageThemeId = 'bento-glass' | 'aubergine-studio' | 'rose-stage' | 'grayscale-stage';
 
-// ─── 1. NHẮC LỊCH HÀNG NGÀY (DAILY SCHEDULE & REMINDER) ─────────────────────
-export interface ScheduleItem {
+// ─── TẦNG 1: MISSION / NHIỆM VỤ CHIẾN LƯỢC CỦA CEO ────────────────────────
+export interface CeoMission {
   id: string;
-  title: string;
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
-  date: string; // YYYY-MM-DD
-  repeat: 'ONCE' | 'DAILY' | 'WEEKDAYS' | 'WEEKLY';
-  category: 'MEETING_369' | 'ERP_REVIEW' | 'STRATEGY_OKR' | 'COACHING_MASLOW' | 'DEEP_WORK' | 'PERSONAL';
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
-  remindMinutesBefore: number;
-  linkedPerson?: string;
-  linkedLsxCode?: string;
-  notes?: string;
-  completedDates: string[]; // Danh sách YYYY-MM-DD đã hoàn thành
+  title: string; // Vấn đề/Mục tiêu chiến lược, VD: "Cải thiện hiệu suất & chất lượng tổ in trong 30 ngày"
+  timeframe: string; // "30 ngày", "Q4/2026", v.v.
+  startDate: string; // YYYY-MM-DD
+  targetDate: string; // YYYY-MM-DD
+  driName: string; // Single DRI chịu trách nhiệm cao nhất
+  status: 'ON_TRACK' | 'AT_RISK' | 'BLOCKED' | 'COMPLETED';
+  progress: number; // 0 - 100
+  prep: {
+    point: string; // Point: Điểm cốt lõi ("Giảm 30% thời gian setup trong 30 ngày")
+    reason: string; // Reason: Vì sao quan trọng ("Setup chậm làm giảm năng suất...")
+    evidence: string; // Evidence: Dẫn chứng/Số liệu ("4 tuần gần nhất setup TB 60 phút...")
+    action: string; // Action: Hành động & phân công ("Sản xuất là DRI; QA & Kỹ thuật phối hợp...")
+    budgetOrAuthority?: string; // Ngân sách hoặc quyền hạn
+    mainRisk?: string; // Rủi ro chính
+  };
+  linkedOkrIds?: string[];
+  linkedInitiativeIds?: string[];
   createdAt: string;
 }
 
-// ─── 2. NGUYÊN TẮC SMART (QUẢN LÝ THIẾT LẬP MỤC TIÊU & NHẮC VIỆC) ───────────
+// ─── TẦNG 2: OKR (MỤC TIÊU & KẾT QUẢ THEN CHỐT CÓ BASELINE/TARGET) ────────
+export interface OkrKeyResult {
+  id: string;
+  title: string;
+  startValue: number; // Baseline (Hiện trạng)
+  baselineValue?: number; // Alias tiện dùng
+  targetValue: number; // Target (Mục tiêu mong muốn)
+  currentValue: number; // Tiến độ thực tế hiện tại
+  unit: string; // Đơn vị: Phút, %, số lỗi, tỷ lệ OTD, chi phí, số lô
+  driName?: string; // Single DRI phụ trách KR này
+  linkedErpMetric?: 'ON_TIME_LSX_RATE' | 'COMPLETED_LSX_COUNT' | 'TODAY_OUTPUT' | 'MANUAL';
+  linkedInitiativeIds?: string[];
+  lastCheckedAt?: string;
+}
+
+export interface OkrObjective {
+  id: string;
+  missionId?: string; // Liên kết tới Mission tầng 1
+  quarter: string; // VD: "Q4/2026"
+  title: string; // Hướng muốn đạt, VD: "Cải thiện hiệu suất vận hành dây chuyền"
+  department: string;
+  ownerName: string; // DRI chịu trách nhiệm Objective
+  priority: 'P0' | 'P1' | 'P2';
+  keyResults: OkrKeyResult[];
+  createdAt: string;
+}
+
+// ─── TẦNG 3: INITIATIVE / DỰ ÁN LỚN (GẮN CHU TRÌNH PDCA) ──────────────────
+export type InitiativePdcaPhase = 'PLAN' | 'DO' | 'CHECK' | 'ACT' | 'STANDARDIZED';
+export type InitiativeStatus =
+  | 'DRAFT'
+  | 'APPROVED'
+  | 'IN_PROGRESS'
+  | 'CHECKING'
+  | 'ACTION_REQUIRED'
+  | 'STANDARDIZED'
+  | 'CLOSED';
+
+export interface CeoInitiative {
+  id: string;
+  missionId?: string; // Thuộc Mission nào
+  linkedOkrId?: string; // Thuộc Objective nào
+  linkedKrId?: string; // Đóng góp trực tiếp cho KR nào
+  title: string; // Tên dự án lớn, VD: "Triển khai SMED cho 3 dòng in Flexo"
+  hypothesis?: string; // Giả thuyết giải pháp
+  driName: string; // 1 DRI duy nhất chịu trách nhiệm dự án
+  targetDate: string; // YYYY-MM-DD
+  status: InitiativeStatus;
+  pdcaPhase: InitiativePdcaPhase;
+  planContent?: string;
+  doContent?: string;
+  checkContent?: string;
+  actContent?: string;
+  taskIds?: string[];
+  createdAt: string;
+}
+
+// ─── TẦNG 4: TASK / HÀNH ĐỘNG CỤ THỂ (1 DRI DUY NHẤT + RACI + BLOCKER) ────
 export type SmartDomain =
   | 'PRODUCTION'
   | 'SALES'
@@ -57,23 +119,52 @@ export interface SmartCriteria {
   timeBound: string; // T - Thời hạn hoàn thành rõ ràng
 }
 
+export interface TaskEvidence {
+  id: string;
+  type: 'IMAGE' | 'DATA' | 'FILE' | 'NOTE';
+  title: string;
+  content?: string;
+  url?: string;
+  submittedBy: string;
+  createdAt: string;
+}
+
 export interface SmartTask {
   id: string;
-  taskType?: 'SMART_GOAL' | 'DRI_ACTION'; // Phân tách Mục tiêu định lượng SMART vs Tác vụ vận hành DRI
+  missionId?: string; // Liên kết tầng 1: Mission
+  initiativeId?: string; // Liên kết tầng 3: Initiative
+  linkedOkrId?: string; // Liên kết tầng 2: OKR
+  linkedKrId?: string; // Liên kết KR cụ thể
+  taskType?: 'SMART_GOAL' | 'DRI_ACTION';
   title: string;
   department: string;
   domain?: SmartDomain;
+  // SINGLE DRI: Người chịu trách nhiệm kết quả cuối cùng (Bắt buộc duy nhất 1 người)
   assigneeName: string;
   assigneeRole?: string;
+  // RACI MATRIX
+  approverName?: string; // A - Người phê duyệt / nghiệm thu đầu ra
+  supporters?: string[]; // S/R - Người phối hợp thực hiện / cung cấp đầu vào
+  consulted?: string[]; // C - Người cần hỏi ý kiến tham vấn
+  informed?: string[]; // I - Người cần nhận thông tin tiến độ
+  // XÁC NHẬN NHẬN VIỆC TRONG 24H
+  driConfirmed?: boolean;
+  driConfirmedAt?: string;
   dueDate: string; // YYYY-MM-DD
   dueTime?: string; // HH:mm
   priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
-  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED';
   progress: number; // 0 - 100
   smart: SmartCriteria;
-  smartScore: number; // 0 - 100 (tính từ 5 tiêu chí SMART)
+  smartScore: number; // 0 - 100
+  // CƠ CHẾ ĐIỂM NGHẼN & ESCALATE TO CEO
+  blockerReason?: string; // Đang chặn ở đâu
+  blockerDecisionNeeded?: string; // Ai cần quyết định gì
+  escalatedToCeo?: boolean; // Đã leo thang lên CEO
+  escalatedAt?: string;
+  // BẰNG CHỨNG ĐẦU RA (EVIDENCE)
+  evidences?: TaskEvidence[];
   linkedLsxCode?: string;
-  linkedOkrId?: string;
   followUpCount: number; // Số lần CEO đã đôn đốc
   lastFollowUpAt?: string;
   isPushedToErp?: boolean;
@@ -91,42 +182,123 @@ export function isDriActionTask(task: SmartTask): boolean {
   );
 }
 
-// ─── 3. CHU TRÌNH PDCA (NÂNG CAO NĂNG LỰC QUẢN TRỊ LIÊN TỤC) ────────────────
+// ─── 5. ANDON SỐ & XỬ LÝ SỰ CỐ NHÀ MÁY (ISSUE & ACTION BOARD) ─────────────
+export type AndonCategory =
+  | 'SETUP_DELAY' // Setup chậm
+  | 'QUALITY_DEFECT' // Lỗi chất lượng
+  | 'MISSING_MATERIAL' // Thiếu vật tư / màng / dao
+  | 'MACHINE_STOP' // Máy dừng / sự cố cơ khí
+  | 'SAFETY' // An toàn lao động
+  | 'OTHER';
+
+export type AndonSeverity = 'MINOR' | 'CRITICAL' | 'LINE_STOP'; // Nhẹ | Nghiêm trọng | Dừng dây chuyền
+
+export type AndonStatus =
+  | 'REPORTED' // Vừa báo cáo, chờ phân loại
+  | 'TRIAGING' // Đang xác định mức độ & DRI
+  | 'RCA' // Đang phân tích 5 Whys / Fishbone
+  | 'ACTION_IN_PROGRESS' // Đang xử lý hành động khắc phục
+  | 'VERIFICATION' // Đang kiểm chứng hiệu quả sau 1-2 tuần
+  | 'CLOSED_STANDARDIZED'; // Đã xử lý & đóng gói vào SOP
+
+export interface AndonIssue {
+  id: string;
+  issueCode: string; // VD: ANDON-20261109-01
+  category: AndonCategory;
+  severity: AndonSeverity;
+  lineOrMachine: string; // Dây chuyền / máy (Flexo 01, Máy bế 02, v.v.)
+  productOrLsxCode?: string; // LSX liên quan
+  shift?: string; // Ca 1, Ca 2
+  stage?: string; // Công đoạn (In, Bế, Chia cuộn, KCS)
+  imageUrl?: string;
+  videoUrl?: string;
+  description: string;
+  reportedBy: string;
+  detectedAt: string; // Thời điểm phát hiện
+  driName: string; // Single DRI chịu trách nhiệm xử lý
+  status: AndonStatus;
+  correctiveActionTaskId?: string; // Task hành động khắc phục sinh ra
+  correctiveActionTitle?: string;
+  correctiveActionDueDate?: string;
+  fiveWhys?: string[]; // 5 câu hỏi Tại sao
+  preventiveAction?: string; // Hành động ngăn ngừa tái diễn
+  verifiedAt?: string;
+  sopUpdatedCode?: string; // Mã SOP đã cập nhật
+  createdAt: string;
+}
+
+// ─── 6. HỘP QUYẾT ĐỊNH CẦN CEO HÔM NAY (DECISION BOX) ──────────────────────
+export interface CeoDecisionItem {
+  id: string;
+  type: 'BLOCKED_TASK' | 'ERP_PROPOSAL' | 'ANDON_ESCALATION' | 'RESOURCE_REQUEST';
+  title: string;
+  requestedBy: string;
+  requestedAt: string;
+  reason: string;
+  decisionNeeded: string; // Quyết định mong muốn
+  urgency: 'URGENT' | 'HIGH' | 'NORMAL';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DIRECTED';
+  linkedEntityId?: string;
+  resolutionNote?: string;
+  resolvedAt?: string;
+}
+
+// ─── 7. LỊCH TRÌNH & ĐIỀU HÀNH HÀNG NGÀY ────────────────────────────────────
+export interface ScheduleItem {
+  id: string;
+  title: string;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  date: string; // YYYY-MM-DD
+  repeat: 'ONCE' | 'DAILY' | 'WEEKDAYS' | 'WEEKLY';
+  category: 'MEETING_369' | 'ERP_REVIEW' | 'STRATEGY_OKR' | 'COACHING_MASLOW' | 'DEEP_WORK' | 'PERSONAL';
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  remindMinutesBefore: number;
+  linkedPerson?: string;
+  linkedLsxCode?: string;
+  notes?: string;
+  completedDates: string[]; // Danh sách YYYY-MM-DD đã hoàn thành
+  createdAt: string;
+}
+
+// ─── 8. CHU TRÌNH PDCA CẢI TIẾN LIÊN TỤC ──────────────────────────────────
 export type PdcaPhase = 'PLAN' | 'DO' | 'CHECK' | 'ACT' | 'STANDARDIZED';
 
 export interface PdcaCycle {
   id: string;
+  missionId?: string;
+  initiativeId?: string;
   title: string;
   area: 'PRODUCTION' | 'QUALITY' | 'DELIVERY' | 'HR_CULTURE' | 'COST_CONTROL' | 'MANAGEMENT';
   ownerName: string;
   phase: PdcaPhase;
-  planProblem: string; // P: Vấn đề & Nguyên nhân gốc rễ + Mục tiêu cải tiến
-  doExperiment: string; // D: Giải pháp thực thi thử nghiệm
-  checkEvaluation: string; // C: Kiểm tra, đo lường kết quả thực tế so với kế hoạch (gắn với Họp 3-6-9)
-  actStandardize: string; // A: Chuẩn hóa quy trình (SOP) hoặc điều chỉnh vòng mới
-  metricBaseline: string; // Chỉ số trước cải tiến
-  metricTarget: string; // Chỉ số mục tiêu
-  metricActual: string; // Chỉ số đạt được thực tế
-  dueDate: string; // YYYY-MM-DD
-  linkedSmartTaskId?: string; // Liên kết Mục tiêu SMART gốc (SMART -> PDCA)
+  planProblem: string;
+  doExperiment: string;
+  checkEvaluation: string;
+  actStandardize: string;
+  metricBaseline: string;
+  metricTarget: string;
+  metricActual: string;
+  dueDate: string;
+  linkedSmartTaskId?: string;
   linkedLsxCode?: string;
-  iteration: number; // Vòng lặp thứ mấy
-  sopStandardizedTitle?: string; // Tên chuẩn hóa SOP (khi kết thúc ở Pha Act/Standardized)
-  sopStandardizedCode?: string; // Mã SOP
-  evaluationSummary?: string; // Báo cáo & Đánh giá hiệu quả kết thúc vòng lặp
+  iteration: number;
+  sopStandardizedTitle?: string;
+  sopStandardizedCode?: string;
+  evaluationSummary?: string;
   evaluationStatus?: 'PENDING' | 'ACHIEVED' | 'ADJUST_NEXT_ITERATION';
   evaluatedAt?: string;
   createdAt: string;
 }
 
-// ─── 4. HỌP THEO NGUYÊN TẮC 3-6-9 ──────────────────────────────────────────
+// ─── 9. HỌP THEO NGUYÊN TẮC 3-6-9 ──────────────────────────────────────────
 export interface MeetingActionItem {
   id: string;
   taskTitle: string;
   assigneeName: string;
   dueDate: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  supervisedCount: number; // Số lần giám sát/đôn đốc (Công thức 2 & 3)
+  supervisedCount: number;
   lastSupervisedAt?: string;
   convertedToSmartTaskId?: string;
 }
@@ -134,68 +306,46 @@ export interface MeetingActionItem {
 export interface Meeting369 {
   id: string;
   title: string;
-  topic: string; // Bước 2: Chủ đề cuộc họp rõ ràng
-  objective: string; // Nguyên tắc 1: Mục tiêu cuộc họp
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm
+  topic: string;
+  objective: string;
+  date: string;
+  startTime: string;
   durationMinutes: number;
-  location?: string; // Địa điểm họp trực tiếp (VD: Phòng họp BGĐ, Văn phòng Xưởng In)
+  location?: string;
   chairperson: string;
-  participants: string[]; // Nguyên tắc 2: Chọn đúng người tham dự
-  preReadDocs: string; // Bước 1 & Nguyên tắc 3: Chuẩn bị tài liệu trước
-  meetingRules: string; // Bước 3: Thiết lập quy tắc họp
-  agendaFlow: string[]; // Bước 4: Sắp xếp quy trình cuộc họp
-  decisionsSummary: string; // Nguyên tắc 6 & 7: Quyết định & Biên bản tổng kết rõ ràng
-  sixStepsCompleted: boolean[]; // 6 bước tổ chức cuộc họp (mảng 6 phần tử)
-  ninePrinciplesChecked: boolean[]; // 9 nguyên tắc bắt buộc (mảng 9 phần tử)
-  actionItems: MeetingActionItem[]; // Bước 5 & 6: Theo dõi kết quả & Kiểm tra tiến độ
-  improvementNote?: string; // Nguyên tắc 9: Đánh giá và cải tiến quy trình họp
-  linkedPdcaId?: string; // Liên kết với Chu trình PDCA (Họp 3-6-9 phục vụ giám sát/đôn đốc pha Check của PDCA)
-  linkedSmartTaskId?: string; // Liên kết với Mục tiêu SMART gốc
-  aiAdvisorNote?: string; // Ghi chú cố vấn điều hành từ AI cho Chủ tọa (CEO)
-  summonSentAt?: string; // Thời điểm đã gửi Lệnh triệu tập & Yêu cầu chuẩn bị qua ERP
-  minutesPublishedAt?: string; // Thời điểm đã ban hành Biên bản & Nghị quyết cuộc họp qua ERP
+  participants: string[];
+  preReadDocs: string;
+  meetingRules: string;
+  agendaFlow: string[];
+  decisionsSummary: string;
+  sixStepsCompleted: boolean[];
+  ninePrinciplesChecked: boolean[];
+  actionItems: MeetingActionItem[];
+  improvementNote?: string;
+  linkedPdcaId?: string;
+  linkedSmartTaskId?: string;
+  aiAdvisorNote?: string;
+  summonSentAt?: string;
+  minutesPublishedAt?: string;
   status: 'SCHEDULED' | 'IN_SESSION' | 'FOLLOW_UP' | 'CLOSED';
   createdAt: string;
 }
 
-// ─── 5. CÔNG CỤ OKR (TẬP TRUNG MỤC TIÊU, THÚC ĐẨY HÀNH ĐỘNG) ──────────────
-export interface OkrKeyResult {
-  id: string;
-  title: string;
-  startValue: number;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  linkedErpMetric?: 'ON_TIME_LSX_RATE' | 'COMPLETED_LSX_COUNT' | 'TODAY_OUTPUT' | 'MANUAL';
-}
-
-export interface OkrObjective {
-  id: string;
-  quarter: string; // VD: "Q4/2026"
-  title: string;
-  department: string;
-  ownerName: string;
-  priority: 'P0' | 'P1' | 'P2';
-  keyResults: OkrKeyResult[];
-  createdAt: string;
-}
-
-// ─── 6. TRUYỀN THÔNG - DIỄN ĐẠT PREP (POINT - REASON - EXAMPLE - POINT) ────
+// ─── 10. TRUYỀN THÔNG PREP (POINT - REASON - EVIDENCE - POINT) ─────────────
 export interface PrepMessage {
   id: string;
   title: string;
-  audience: string; // Toàn công ty / Xưởng sản xuất / Khối văn phòng / Cá nhân
+  audience: string;
   category: 'DIRECTIVE' | 'ALIGNMENT' | 'POLICY' | 'MOTIVATION';
-  pointOpening: string; // P1: Kết luận / Thông điệp cốt lõi mở đầu
-  reasonWhy: string; // R: Lý do / Căn cứ tại sao cần thực hiện
-  exampleEvidence: string; // E: Ví dụ cụ thể / Số liệu dẫn chứng thực tế
-  pointClosing: string; // P2: Khẳng định lại thông điệp & Hành động tiếp theo
+  pointOpening: string;
+  reasonWhy: string;
+  exampleEvidence: string;
+  pointClosing: string;
   publishedToErp: boolean;
   createdAt: string;
 }
 
-// ─── 7. THÁP MASLOW (TẠO ĐỘNG LỰC CHO NHÂN VIÊN) ───────────────────────────
+// ─── 11. THÁP MASLOW & FFC ────────────────────────────────────────────────
 export type MaslowLevelNumber = 1 | 2 | 3 | 4 | 5;
 
 export interface MaslowEmployeePlan {
@@ -203,34 +353,33 @@ export interface MaslowEmployeePlan {
   employeeName: string;
   department: string;
   role: string;
-  dominantNeedLevel: MaslowLevelNumber; // 1: Sinh lý, 2: An toàn, 3: Xã hội, 4: Tôn trọng, 5: Tự thể hiện
+  dominantNeedLevel: MaslowLevelNumber;
   satisfactionScores: {
-    level1Physiological: number; // 1-10
-    level2Safety: number; // 1-10
-    level3Belonging: number; // 1-10
-    level4Esteem: number; // 1-10
-    level5SelfActualization: number; // 1-10
+    level1Physiological: number;
+    level2Safety: number;
+    level3Belonging: number;
+    level4Esteem: number;
+    level5SelfActualization: number;
   };
-  currentObservation: string; // Biểu hiện / Tâm tư hiện tại của nhân viên
-  motivationAction: string; // Hành động tạo động lực cụ thể của CEO
-  nextCheckInDate: string; // YYYY-MM-DD
+  currentObservation: string;
+  motivationAction: string;
+  nextCheckInDate: string;
   createdAt: string;
 }
 
-// ─── 8. NGUYÊN TẮC KHEN NGỢI FFC (FEELING - FACT - COMPARE) ────────────────
 export interface FfcPraiseRecord {
   id: string;
   recipientName: string;
   department: string;
-  feeling: string; // F1: Cảm xúc chân thành của người lãnh đạo
-  fact: string; // F2: Sự thật / Hành vi / Con số cụ thể nhân viên đã đạt được
-  compare: string; // C: So sánh với trước đây / với mục tiêu hoặc giá trị lan tỏa
+  feeling: string;
+  fact: string;
+  compare: string;
   linkedLsxCode?: string;
   sentToErp: boolean;
   createdAt: string;
 }
 
-// ─── 9. PHÂN TÍCH SWOT (QUẢN TRỊ CHIẾN LƯỢC CẠNH TRANH) ────────────────────
+// ─── 12. PHÂN TÍCH SWOT & TOWS ────────────────────────────────────────────
 export interface SwotEntry {
   id: string;
   type: 'S' | 'W' | 'O' | 'T';
@@ -240,7 +389,7 @@ export interface SwotEntry {
 
 export interface TowsStrategicAction {
   id: string;
-  strategyType: 'SO' | 'WO' | 'ST' | 'WT'; // SO: Phát huy S chớp O, WO: Khắc phục W bằng O, ST: Dùng S vượt T, WT: Phòng thủ giảm W tránh T
+  strategyType: 'SO' | 'WO' | 'ST' | 'WT';
   actionTitle: string;
   ownerName: string;
   dueDate: string;
@@ -257,6 +406,7 @@ export interface SwotBoard {
   updatedAt: string;
 }
 
+// ─── 13. INTENT ĐIỀU HƯỚNG LIÊN PHÂN HỆ ────────────────────────────────────
 export interface NavigationContextIntent {
   tab: CeoTabId;
   subView?: string;
