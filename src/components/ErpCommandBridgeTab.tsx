@@ -221,26 +221,16 @@ export const ErpCommandBridgeTab: React.FC<ErpCommandBridgeTabProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* ── HEADER KẾT NỐI TRỰC TIẾP ERP MVĐN & BỘ LỌC THỜI GIAN ── */}
-      <div className="ceo-card p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-xs">
-            <Database className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-extrabold text-slate-900 text-sm">
-                Dữ Liệu ERP Mã Vạch Đồng Nai
-              </h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-[10px] flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {isLoaded ? 'ĐỒNG BỘ REALTIME' : 'SYNC...'}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Kết nối trực tiếp mvdn-59215 • Chuẩn thuật toán và trạng thái với ProTrack ERP
-            </p>
-          </div>
+      {/* ── THANH TRẠNG THÁI KẾT NỐI ERP & BỘ LỌC (Không lặp lại tiêu đề Header bar) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-1 no-print">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-[11px] flex items-center gap-1.5 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {isLoaded ? 'KẾT NỐI REALTIME ERP MVĐN' : 'ĐANG KẾT NỐI ERP...'}
+          </span>
+          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+            (mvdn-59215)
+          </span>
         </div>
 
         {/* Chuyển đổi Tháng này / Toàn bộ dữ liệu */}

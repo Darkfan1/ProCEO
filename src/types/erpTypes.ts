@@ -264,3 +264,25 @@ export interface ErpAnnouncement {
   docType: 'ANNOUNCEMENT';
 }
 
+export interface ErpRadarMetrics {
+  totalLsxCount: number;
+  inProgressLsxCount: number;
+  completedLsxCount: number;
+  overdueLsx: ErpLsxOrder[];
+  nearingDeadlineLsx: ErpLsxOrder[];
+  pendingIntakesCount: number;
+  pendingIntakes: ErpOrderIntake[];
+  todayNewIntakesCount: number;
+  todayNewIntakesQuantity: number;
+  todayNewIntakes: ErpOrderIntake[];
+  pendingProposals: ErpProposal[];
+  todayReportsCount: number;
+  todayFinishedQuantity: number;
+  todayDefectiveQuantity: number;
+  activeWorkersToday: number;
+  totalPersonnelCount: number;
+  onTimeLsxRate: number;
+  idleMachinesCount: number;
+}
+
+

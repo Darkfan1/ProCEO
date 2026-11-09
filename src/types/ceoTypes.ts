@@ -1,10 +1,23 @@
 import { FrameworkCode } from '../data/ceoMindsetData';
 
 export type CeoTabId =
+  | 'dashboard'
+  | 'swot-tows'
+  | 'okr'
+  | 'smart'
+  | 'tasks'
+  | 'pdca'
+  | 'meetings'
+  | 'prep'
+  | 'people'
+  | 'copilot'
+  | 'settings'
   | 'cockpit'
   | 'execution'
   | 'erp-bridge'
   | 'mindset-hub';
+
+export type OperatingMode = 'PERSONAL' | 'ORGANIZATION';
 
 export type StageThemeId = 'bento-glass' | 'aubergine-studio' | 'rose-stage' | 'grayscale-stage';
 
@@ -46,6 +59,7 @@ export interface SmartCriteria {
 
 export interface SmartTask {
   id: string;
+  taskType?: 'SMART_GOAL' | 'DRI_ACTION'; // Phân tách Mục tiêu định lượng SMART vs Tác vụ vận hành DRI
   title: string;
   department: string;
   domain?: SmartDomain;
@@ -65,6 +79,16 @@ export interface SmartTask {
   isPushedToErp?: boolean;
   pushedToErpAt?: string;
   createdAt: string;
+}
+
+export function isDriActionTask(task: SmartTask): boolean {
+  if (task.taskType === 'DRI_ACTION') return true;
+  if (task.taskType === 'SMART_GOAL') return false;
+  return (
+    task.id.startsWith('task-') ||
+    task.id.startsWith('dri-') ||
+    task.id.startsWith('sample-dri-')
+  );
 }
 
 // ─── 3. CHU TRÌNH PDCA (NÂNG CAO NĂNG LỰC QUẢN TRỊ LIÊN TỤC) ────────────────
@@ -239,6 +263,9 @@ export interface NavigationContextIntent {
   prefillTitle?: string;
   prefillAssignee?: string;
   prefillLsxCode?: string;
+  prefillDescription?: string;
+  prefillOkrId?: string;
+  prefillAudience?: string;
   prefillSmartTask?: SmartTask;
   prefillPdcaCycle?: PdcaCycle;
   frameworkCode?: FrameworkCode;

@@ -209,6 +209,22 @@ export const useErpAdminAuth = () => {
     []
   );
 
+  const quickDevLogin = useCallback(() => {
+    const defaultCeo: ErpUser = {
+      id: 'mvdn-ceo-tondongvu',
+      uid: 'mvdn-ceo-tondongvu',
+      username: 'tondongvu',
+      name: 'Tôn Đông Vũ • CEO',
+      email: 'furywing2608@gmail.com',
+      role: 'ADMIN',
+      department: 'Ban Giám Đốc',
+    };
+    setAdminUser(defaultCeo);
+    try {
+      localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(defaultCeo));
+    } catch {}
+  }, []);
+
   const logoutErp = useCallback(async () => {
     try {
       await signOut(auth);
@@ -229,6 +245,7 @@ export const useErpAdminAuth = () => {
     authError,
     setAuthError,
     loginWithErp,
+    quickDevLogin,
     logoutErp,
   };
 };

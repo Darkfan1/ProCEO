@@ -23,6 +23,20 @@ import {
   SwotEntry,
   TowsStrategicAction,
 } from '../types/ceoTypes';
+import {
+  ErpLsxOrder,
+  ErpStaffMember,
+  ErpMachine,
+  ErpOrderIntake,
+  ErpRadarMetrics,
+} from '../types/erpTypes';
+import {
+  getLsxItemName,
+  getLsxTotalQuantity,
+  getLsxUnit,
+  isLsxInProduction,
+  isLsxOverdue,
+} from '../utils/erpDataUtils';
 
 export function computeSmartScore(smart?: Partial<SmartCriteria> | null): number {
   if (!smart) return 0;
@@ -59,16 +73,594 @@ export const DEMO_IDS = new Set<string>([
   'ffc-1',
 ]);
 
-// ─── KHÔNG SỬ DỤNG DỮ LIỆU VÍ DỤ ẢO: DỮ LIỆU ĐƯỢC KẾT NỐI VÀ NHẬP THẬT TỪ ERP ──
-export const INITIAL_SCHEDULES: ScheduleItem[] = [];
-export const INITIAL_SMART_TASKS: SmartTask[] = [];
-export const INITIAL_PDCA_CYCLES: PdcaCycle[] = [];
-export const INITIAL_MEETINGS_369: Meeting369[] = [];
-export const INITIAL_OKRS: OkrObjective[] = [];
-export const INITIAL_SWOT_BOARDS: SwotBoard[] = [];
-export const INITIAL_MASLOW_PLANS: MaslowEmployeePlan[] = [];
-export const INITIAL_FFC_PRAISES: FfcPraiseRecord[] = [];
-export const INITIAL_PREP_MESSAGES: PrepMessage[] = [];
+// ─── TỰ ĐỘNG KẾT NỐI VÀ LÀM GIÀU DỮ LIỆU MẪU TỪ ERP MVĐN THỰC TẾ ──────────────
+export interface ErpSeedParams {
+  lsxOrders?: ErpLsxOrder[];
+  staffDirectory?: ErpStaffMember[];
+  machines?: ErpMachine[];
+  intakes?: ErpOrderIntake[];
+  radarMetrics?: ErpRadarMetrics;
+}
+
+export function buildRealErpSeeds(params?: ErpSeedParams) {
+  const currentToday = getLocalTodayYmd();
+
+  // 1. Tìm đơn hàng trọng điểm thực tế từ ERP: Ưu tiên đơn trễ hạn -> đơn đang chạy -> đơn bất kỳ
+  const overdueList =
+    params?.radarMetrics?.overdueLsx && params.radarMetrics.overdueLsx.length > 0
+      ? params.radarMetrics.overdueLsx
+      : (params?.lsxOrders || []).filter(
+          (o) => isLsxOverdue(o.deliveryDate) && isLsxInProduction(o)
+        );
+
+  const inProgressList = (params?.lsxOrders || []).filter((o) => isLsxInProduction(o));
+  const targetLsx = overdueList[0] || inProgressList[0] || params?.lsxOrders?.[0];
+
+  const lsxCode = targetLsx
+    ? targetLsx.lsxCode || targetLsx.orderCode || targetLsx.id
+    : 'LSX-2026-8889';
+
+  const customer = targetLsx?.customer?.trim() || 'Khách hàng MVĐN';
+  const itemName = targetLsx
+    ? getLsxItemName(targetLsx)
+    : 'Tem nhãn Decal Fasson 4 màu UV';
+
+  const totalQty = targetLsx ? getLsxTotalQuantity(targetLsx) : 65000;
+  const quantity = totalQty > 0 ? totalQty.toLocaleString('vi-VN') : '65.000';
+  const unit = targetLsx ? getLsxUnit(targetLsx) : 'con';
+  const deliveryDate = targetLsx?.deliveryDate || addLocalDaysYmd(7, currentToday);
+
+  // Danh sách các mã LSX cần xử lý gấp
+  const overdueCodes = overdueList.slice(0, 3).map((o) => o.lsxCode || o.orderCode || o.id).join(', ');
+
+  // 2. Tìm máy móc thực tế từ ERP
+  const machineIn =
+    params?.machines?.find((m) => m.type === 'IN' || m.name.toLowerCase().includes('in')) ||
+    params?.machines?.[0];
+  const machineName = machineIn?.name || 'Máy In Flexo 8 màu Mark Andy';
+
+  // 3. Tìm nhân sự thực tế từ danh bạ ERP MVĐN (Tab Nhân Sự)
+  const prodStaff =
+    params?.staffDirectory?.find(
+      (s) =>
+        s.department.toLowerCase().includes('sản xuất') ||
+        s.role.toLowerCase().includes('in') ||
+        s.role.toLowerCase().includes('quản đốc')
+    ) || params?.staffDirectory?.[0];
+
+  const staffName1 = targetLsx?.operatorIn?.trim() || prodStaff?.name || 'Nguyễn Văn Hùng';
+  const staffRole1 = prodStaff?.role || 'Quản Đốc Phân Xưởng In';
+  const staffDept1 = prodStaff?.department || 'Xưởng In Flexo';
+
+  const officeStaff =
+    params?.staffDirectory?.find(
+      (s) =>
+        s.id !== prodStaff?.id &&
+        (s.department.toLowerCase().includes('kế hoạch') ||
+          s.department.toLowerCase().includes('kho') ||
+          s.department.toLowerCase().includes('kỹ thuật') ||
+          s.department.toLowerCase().includes('điều độ') ||
+          s.role.toLowerCase().includes('kế hoạch'))
+    ) || params?.staffDirectory?.[1] || params?.staffDirectory?.[0];
+
+  const staffName2 = officeStaff?.name || 'Lê Thị Bích Ngọc';
+  const staffRole2 = officeStaff?.role || 'Điều độ Kế hoạch & Kho vận';
+  const staffDept2 = officeStaff?.department || 'Phòng Kế Hoạch & Kho Vận';
+
+  // 4. Các số liệu radar thực tế từ ERP
+  const totalLsxCount = params?.radarMetrics?.totalLsxCount || params?.lsxOrders?.length || 184;
+  const inProgressCount = params?.radarMetrics?.inProgressLsxCount || inProgressList.length || 115;
+  const overdueCount = overdueList.length || 4;
+  const intakesCount = params?.radarMetrics?.todayNewIntakesCount || params?.intakes?.length || 11;
+  const onTimeRate = params?.radarMetrics?.onTimeLsxRate ?? 94;
+
+  const schedules: ScheduleItem[] = [
+    {
+      id: 'sample-sched-01',
+      title: `Giao ban Ban Giám Đốc: Rà soát ${overdueCount} LSX gấp & Điều phối ${machineName}`,
+      startTime: '08:30',
+      endTime: '09:15',
+      date: currentToday,
+      repeat: 'DAILY',
+      category: 'MEETING_369',
+      priority: 'HIGH',
+      remindMinutesBefore: 10,
+      linkedPerson: `Ban Giám Đốc & ${staffName1}`,
+      linkedLsxCode: lsxCode,
+      notes: `Đánh giá tiến độ LSX ${lsxCode} (${customer}), rà soát màng cuộn và mực in cho ${intakesCount} đơn hàng mới tiếp nhận hôm nay.`,
+      completedDates: [],
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-sched-02',
+      title: `Kiểm tra Gemba xưởng in: Thị sát quy trình vận hành & hao hụt decal trên ${machineName}`,
+      startTime: '10:00',
+      endTime: '10:45',
+      date: currentToday,
+      repeat: 'DAILY',
+      category: 'ERP_REVIEW',
+      priority: 'HIGH',
+      remindMinutesBefore: 15,
+      linkedPerson: staffName1,
+      linkedLsxCode: lsxCode,
+      notes: `Kiểm tra tốc độ chạy chuẩn 85m/phút, độ bám dính màng và kiểm soát tỷ lệ hao hụt phế phẩm dưới 1.8%.`,
+      completedDates: [],
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-sched-03',
+      title: `Họp 3-6-9: Giải quyết nút thắt giao hàng đơn hàng ${lsxCode} (${customer})`,
+      startTime: '14:00',
+      endTime: '14:45',
+      date: currentToday,
+      repeat: 'ONCE',
+      category: 'MEETING_369',
+      priority: 'HIGH',
+      remindMinutesBefore: 10,
+      linkedPerson: `${staffName2} & Bộ phận Kế hoạch`,
+      linkedLsxCode: lsxCode,
+      notes: `Chốt phương án ca kíp, điều phối xe giao hàng kịp deadline ${deliveryDate}.`,
+      completedDates: [],
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-sched-04',
+      title: `Rà soát Tài chính & Phê duyệt hạn mức mua vật tư decal cuộn cho ${intakesCount} đơn mới`,
+      startTime: '16:30',
+      endTime: '17:15',
+      date: currentToday,
+      repeat: 'WEEKDAYS',
+      category: 'DEEP_WORK',
+      priority: 'MEDIUM',
+      remindMinutesBefore: 10,
+      linkedPerson: 'Ban Tài Chính & Kế Toán',
+      notes: `Đối chiếu công nợ nhà cung cấp màng decal và phê duyệt đề xuất chi cho tuần tới.`,
+      completedDates: [],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const smartTasks: SmartTask[] = [
+    {
+      id: 'sample-smart-01',
+      title: `Thúc đẩy tiến độ & Kiểm soát chất lượng LSX ${lsxCode} (${customer})`,
+      department: staffDept1,
+      domain: 'PRODUCTION',
+      assigneeName: `${staffName1} (${staffRole1})`,
+      assigneeRole: staffRole1,
+      dueDate: deliveryDate,
+      dueTime: '17:00',
+      priority: 'URGENT',
+      status: 'IN_PROGRESS',
+      progress: 65,
+      smart: {
+        specific: `Tập trung in và hoàn thiện ${quantity} ${unit} sản phẩm ${itemName} cho khách hàng ${customer} theo lệnh ${lsxCode}.`,
+        measurable: `Hoàn thành 100% sản lượng ${quantity} ${unit}, tỷ lệ phế liệu in cuộn dưới 2.0%, kiểm tra mã Barcode/RFID đạt chuẩn AQL 1.0.`,
+        achievable: `Đã ưu tiên trạm in trên ${machineName}, chuẩn hóa dao bế và phân công thợ chính phụ trách trực tiếp.`,
+        relevant: `Giải quyết dứt điểm cảnh báo tiến độ LSX trên hệ thống ERP MVĐN, bảo đảm uy tín giao hàng cho khách hàng ${customer}.`,
+        timeBound: `Bàn giao sang tổ đóng gói trước ngày ${deliveryDate}.`,
+      },
+      smartScore: 100,
+      linkedLsxCode: lsxCode,
+      linkedOkrId: 'sample-okr-01',
+      followUpCount: 2,
+      isPushedToErp: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-smart-02',
+      title: `Bảo dưỡng phòng ngừa dao bế & Căn chỉnh trục in trạm 2 trên ${machineName}`,
+      department: 'Phòng Kỹ Thuật & Bảo Trì',
+      domain: 'QUALITY',
+      assigneeName: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      assigneeRole: 'Trưởng BP Kỹ Thuật',
+      dueDate: addLocalDaysYmd(2, currentToday),
+      dueTime: '20:00',
+      priority: 'HIGH',
+      status: 'TODO',
+      progress: 0,
+      smart: {
+        specific: `Thay dầu hộp số, kiểm tra độ mòn dao bế từ và căn chỉnh trục bản in trạm 2 máy ${machineName}.`,
+        measurable: `Độ lệch bế dưới 0.15mm, kiểm tra 100% các trục không có vết xước hoặc rung lắc.`,
+        achievable: `Bộ phận bảo trì chuẩn bị sẵn phụ tùng thay thế và căn chỉnh trong 2 giờ dừng máy ca 3.`,
+        relevant: `Đảm bảo độ chính xác cho các đơn hàng tem nhãn cuộn Flexo tốc độ cao.`,
+        timeBound: `Hoàn tất trước 20:00 ngày ${addLocalDaysYmd(2, currentToday)}.`,
+      },
+      smartScore: 95,
+      linkedLsxCode: lsxCode,
+      followUpCount: 1,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-smart-03',
+      title: `Nghiệm thu thử nghiệm công nghệ phủ màng UV chống trầy cho bao bì xuất khẩu`,
+      department: 'KCS & Quản Lý Chất Lượng',
+      domain: 'QUALITY',
+      assigneeName: 'Nguyễn Thị Lan (Trưởng BP QA/QC)',
+      assigneeRole: 'Trưởng BP QA/QC',
+      dueDate: addLocalDaysYmd(1, currentToday),
+      dueTime: '16:00',
+      priority: 'MEDIUM',
+      status: 'REVIEW',
+      progress: 90,
+      smart: {
+        specific: `Thử nghiệm test độ bám mực và chống trầy xước bằng băng keo 3M và cồn 90 độ trên 5 mẫu in thử.`,
+        measurable: `5/5 mẫu đạt độ bám dính cấp độ 5B theo tiêu chuẩn ASTM D3359, lập biên bản nghiệm thu.`,
+        achievable: `Phòng Lab QC đã trang bị máy đo độ bám dính và dung môi thử nghiệm đạt chuẩn ISO.`,
+        relevant: `Điều kiện tiên quyết để ký hợp đồng cung ứng dài hạn năm 2027 với khách hàng FDI.`,
+        timeBound: `Báo cáo kết quả nghiệm thu trước 16:00 ngày ${addLocalDaysYmd(1, currentToday)}.`,
+      },
+      smartScore: 100,
+      linkedOkrId: 'sample-okr-01',
+      followUpCount: 3,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-smart-04',
+      title: `Đối soát chứng từ & Thu hồi công nợ đến hạn đợt 1 đối tác thương mại`,
+      department: 'Phòng Kế Toán & Tài Chính',
+      domain: 'FINANCE',
+      assigneeName: 'Lê Thị Mai (Kế Toán Trưởng)',
+      assigneeRole: 'Kế Toán Trưởng',
+      dueDate: currentToday,
+      dueTime: '17:30',
+      priority: 'HIGH',
+      status: 'DONE',
+      progress: 100,
+      smart: {
+        specific: `Đối soát công nợ tháng trước và thu hồi 100% khoản thanh toán đợt 1 từ đối tác thương mại.`,
+        measurable: `Số tiền thu hồi đạt 485,000,000 VNĐ, biên bản đối chiếu công nợ có chữ ký 2 bên.`,
+        achievable: `Khách hàng đã nhận đủ hàng và đồng ý lịch thanh toán theo hợp đồng thương mại.`,
+        relevant: `Đảm bảo dòng tiền thanh toán cho nhà cung cấp nguyên vật liệu màng decal.`,
+        timeBound: `Hoàn tất trước 17:30 ngày hôm nay.`,
+      },
+      smartScore: 92,
+      taskType: 'SMART_GOAL',
+      followUpCount: 1,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-dri-01',
+      taskType: 'DRI_ACTION',
+      title: `Điều phối cuộn màng decal & bản in trước 11h00 cho lệnh gấp ${lsxCode}`,
+      department: staffDept2,
+      domain: 'SUPPLY_CHAIN',
+      assigneeName: `${staffName2} (${staffRole2})`,
+      assigneeRole: staffRole2,
+      dueDate: currentToday,
+      dueTime: '11:00',
+      priority: 'URGENT',
+      status: 'IN_PROGRESS',
+      progress: 60,
+      smart: {
+        specific: `Xuất kho đủ cuộn màng decal và bàn giao bản in tận máy cho lệnh ${lsxCode}`,
+        measurable: `Đủ 100% vật tư tại đầu máy trước 11:00 trưa nay, không chờ vật tư`,
+        achievable: `Kho vận & Kỹ thuật phối hợp trực tiếp`,
+        relevant: `Tác vụ điều phối ngày từ giao ban sáng`,
+        timeBound: `Trước 11:00 ngày ${currentToday}`,
+      },
+      smartScore: 85,
+      linkedLsxCode: lsxCode,
+      followUpCount: 1,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-dri-02',
+      taskType: 'DRI_ACTION',
+      title: `Gửi lịch xác nhận giờ xe giao hàng đợt 1 cho khách hàng ${customer}`,
+      department: 'Kinh Doanh & Điều Phối',
+      domain: 'SALES',
+      assigneeName: staffName2,
+      assigneeRole: staffRole2,
+      dueDate: addLocalDaysYmd(1, currentToday),
+      dueTime: '15:00',
+      priority: 'HIGH',
+      status: 'TODO',
+      progress: 0,
+      smart: {
+        specific: `Chốt khung giờ xe tải nhận hàng và thông báo cho kho thành phẩm`,
+        measurable: `Xác nhận văn bản/Zalo với khách hàng ${customer} trước 15:00`,
+        achievable: `Đội điều phối giao nhận thực hiện`,
+        relevant: `Đảm bảo giao hàng đúng cam kết`,
+        timeBound: `Trước 15:00 ngày ${addLocalDaysYmd(1, currentToday)}`,
+      },
+      smartScore: 85,
+      linkedLsxCode: lsxCode,
+      followUpCount: 0,
+      isPushedToErp: false,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const pdcaCycles: PdcaCycle[] = [
+    {
+      id: 'sample-pdca-01',
+      title: `Khắc phục lỗi lệch chồng màu (Misregister) và hao hụt decal trên ${machineName}`,
+      area: 'PRODUCTION',
+      ownerName: 'Trần Đình Trọng (Trưởng BP Kỹ Thuật)',
+      phase: 'CHECK',
+      planProblem: `Tỷ lệ hàng lỗi ở các đơn hàng ${itemName} chạy trên ${machineName} đạt 4.2% do dao động lực căng cuộn giấy và mòn trục in.`,
+      doExperiment: `Thay vòng bi trục in số 3 & 4, lắp cảm biến lực căng điện tử mới và thử nghiệm chạy tốc độ chuẩn 85m/phút với mực UV DIC.`,
+      checkEvaluation: `Sau 5 ca chạy thử nghiệm trên 30,000m decal đơn hàng ${lsxCode}, tỷ lệ phế phẩm giảm còn 0.8%, độ đồng màu Delta-E < 1.2 đạt chuẩn ISO 12647-6.`,
+      actStandardize: `Ban hành quy trình chuẩn SOP-TECH-04 về bảo dưỡng trục bản in và checklist cân chỉnh lực căng trước mỗi ca làm việc.`,
+      metricBaseline: '4.2% tỷ lệ phế phẩm',
+      metricTarget: '< 1.0% phế phẩm',
+      metricActual: '0.8% phế phẩm (Đạt mục tiêu)',
+      dueDate: addLocalDaysYmd(7, currentToday),
+      linkedSmartTaskId: 'sample-smart-01',
+      linkedLsxCode: lsxCode,
+      iteration: 1,
+      sopStandardizedTitle: `Quy trình kiểm soát lực căng cuộn & căn chỉnh trục in trên ${machineName}`,
+      sopStandardizedCode: 'SOP-TECH-04',
+      evaluationStatus: 'ACHIEVED',
+      evaluationSummary: `Thử nghiệm thành công trên đơn hàng ${lsxCode}, chất lượng in sắc nét đạt chuẩn xuất xưởng.`,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const meetings: Meeting369[] = [
+    {
+      id: 'sample-meet-01',
+      title: `Họp Giao Ban Sản Xuất 3-6-9: Giải quyết nút thắt ${overdueCount} đơn hàng sản xuất Quý 4`,
+      topic: `Tháo gỡ tiến độ LSX ${lsxCode} (${customer}) và phân bổ công suất ${machineName}`,
+      objective: `Chốt phương án bố trí tăng ca, điều chuyển vật tư và cam kết giao hàng đúng hẹn 100% cho các LSX gấp.`,
+      date: currentToday,
+      startTime: '09:30',
+      durationMinutes: 45,
+      location: 'Phòng Họp Điều Hành Nhà Máy MVĐN',
+      chairperson: 'Tôn Đăng Vũ (CEO)',
+      participants: [
+        'Tôn Đăng Vũ (CEO)',
+        `${staffName1} (${staffDept1})`,
+        `${staffName2} (${staffDept2})`,
+        'Trần Đình Trọng (Kỹ thuật)',
+      ],
+      preReadDocs: `Báo cáo ERP MVĐN: Radar ${inProgressCount} LSX đang chạy, ${overdueCount} LSX trễ hạn & ${intakesCount} đơn hàng tiếp nhận hôm nay`,
+      meetingRules: 'Đúng giờ • Tập trung giải pháp tháo gỡ điểm nghẽn • Không đổ lỗi • Chốt biên bản có DRI & Deadline',
+      agendaFlow: [
+        '09:30 - 09:35: Khởi động & Điểm danh mục tiêu (Nguyên tắc 4)',
+        `09:35 - 09:55: Phân tích nguyên nhân chậm tiến độ LSX ${lsxCode} và ${overdueCount} đơn hàng cảnh báo (Nguyên tắc 5)`,
+        `09:55 - 10:10: Chốt quyết định điều ca máy trên ${machineName} & phụ cấp tăng ca (Nguyên tắc 6)`,
+        '10:10 - 10:15: Ký biên bản hành động DRI & Deadline (Nguyên tắc 7)',
+      ],
+      decisionsSummary: `Thống nhất tăng cường ca phụ trên ${machineName} từ 18:00 - 22:00, ưu tiên vật tư hoàn thiện đơn ${lsxCode} trước ngày ${deliveryDate}.`,
+      sixStepsCompleted: [true, true, true, true, false, false],
+      ninePrinciplesChecked: [true, true, true, true, true, true, false, false, false],
+      actionItems: [
+        {
+          id: 'sample-meet-act-01',
+          taskTitle: `Điều phối màng cuộn và dao bế cho đơn hàng ${lsxCode} (${customer}) hoàn tất trước 14:00`,
+          assigneeName: staffName2,
+          dueDate: currentToday,
+          status: 'IN_PROGRESS',
+          supervisedCount: 1,
+        },
+        {
+          id: 'sample-meet-act-02',
+          taskTitle: `Bố trí tổ thợ máy chạy bù sản lượng ${quantity} ${unit} trên ${machineName}`,
+          assigneeName: staffName1,
+          dueDate: currentToday,
+          status: 'PENDING',
+          supervisedCount: 0,
+        },
+      ],
+      status: 'FOLLOW_UP',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const okrs: OkrObjective[] = [
+    {
+      id: 'sample-okr-01',
+      quarter: 'Q4/2026',
+      title: 'Tối ưu hóa năng lực sản xuất và nâng cao tỷ lệ giao hàng đúng hẹn (OTD) toàn nhà máy MVĐN',
+      department: 'Ban Giám Đốc & Khối Vận Hành Nhà Máy',
+      ownerName: 'Tôn Đăng Vũ (CEO)',
+      priority: 'P0',
+      keyResults: [
+        {
+          id: 'sample-kr-01',
+          title: `Nâng tỷ lệ giao hàng LSX đúng hẹn (OTD) toàn nhà xưởng từ 88% lên 98% (Hiện tại: ${onTimeRate}%)`,
+          startValue: 88,
+          targetValue: 98,
+          currentValue: onTimeRate,
+          unit: '%',
+          linkedErpMetric: 'ON_TIME_LSX_RATE',
+        },
+        {
+          id: 'sample-kr-02',
+          title: `Kéo giảm số lượng LSX có nguy cơ trễ hạn trên hệ thống Radar từ ${overdueCount} đơn về 0 đơn`,
+          startValue: overdueCount,
+          targetValue: 0,
+          currentValue: Math.max(0, overdueCount - 2),
+          unit: 'LSX',
+          linkedErpMetric: 'MANUAL',
+        },
+        {
+          id: 'sample-kr-03',
+          title: `Kiểm soát năng lực xử lý ${intakesCount} đơn hàng tiếp nhận mỗi ngày đạt chuẩn ra LSX trong 24h`,
+          startValue: 5,
+          targetValue: 20,
+          currentValue: intakesCount,
+          unit: 'đơn/ngày',
+          linkedErpMetric: 'TODAY_OUTPUT',
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const swotBoards: SwotBoard[] = [
+    {
+      id: 'sample-swot-01',
+      title: 'Ma trận Chiến lược Cạnh tranh Nhà máy Sản xuất Nhãn Thông minh MVĐN',
+      period: `${new Date().getFullYear()} - ${new Date().getFullYear() + 1}`,
+      focusDomain: `Vận hành ${inProgressCount} LSX, Máy in Flexo công nghiệp, Tem RFID & Nhãn truy xuất nguồn gốc`,
+      entries: [
+        {
+          id: 'swot-s1',
+          type: 'S',
+          content: `Hệ thống thiết bị ${machineName} hiện đại, tích hợp trạm phủ UV và bế tự động tốc độ cao.`,
+          impact: 'HIGH',
+        },
+        {
+          id: 'swot-s2',
+          type: 'S',
+          content: 'Đội ngũ kỹ thuật viên tay nghề cao, kiểm soát dung sai màu chuẩn xác và am hiểu công nghệ chip RFID.',
+          impact: 'HIGH',
+        },
+        {
+          id: 'swot-w1',
+          type: 'W',
+          content: 'Tồn kho nguyên phụ liệu decal nhập khẩu còn phụ thuộc thời gian vận chuyển của nhà cung cấp quốc tế.',
+          impact: 'MEDIUM',
+        },
+        {
+          id: 'swot-w2',
+          type: 'W',
+          content: 'Tỷ lệ hao hụt lên bài in ở các mã hàng tem nhiều màu còn cao trong giai đoạn chạy thử.',
+          impact: 'HIGH',
+        },
+        {
+          id: 'swot-o1',
+          type: 'O',
+          content: 'Nhu cầu chuyển đổi số chuỗi cung ứng bằng nhãn RFID trong ngành may mặc và dược phẩm tăng trưởng 35%/năm.',
+          impact: 'HIGH',
+        },
+        {
+          id: 'swot-o2',
+          type: 'O',
+          content: 'Các hiệp định thương mại tự do mở rộng xuất khẩu hàng tiêu dùng dán nhãn Việt Nam sang EU và Bắc Mỹ.',
+          impact: 'HIGH',
+        },
+        {
+          id: 'swot-t1',
+          type: 'T',
+          content: 'Biến động tỷ giá ngoại tệ ảnh hưởng đến giá vốn giấy decal cuộn và mực in gốc nước.',
+          impact: 'MEDIUM',
+        },
+        {
+          id: 'swot-t2',
+          type: 'T',
+          content: 'Sự cạnh tranh gay gắt về giá từ các xưởng in gia công nhỏ lẻ ở phân khúc nhãn barcode thông thường.',
+          impact: 'HIGH',
+        },
+      ],
+      towsActions: [
+        {
+          id: 'tows-so-1',
+          strategyType: 'SO',
+          actionTitle: 'Tập trung mũi nhọn tiếp cận các tập đoàn Dược phẩm & May mặc xuất khẩu với giải pháp nhãn RFID trọn gói',
+          ownerName: 'Tôn Đăng Vũ (CEO)',
+          dueDate: addLocalDaysYmd(30, currentToday),
+          status: 'EXECUTING',
+        },
+        {
+          id: 'tows-wo-1',
+          strategyType: 'WO',
+          actionTitle: 'Triển khai chu trình PDCA chuẩn hóa checklist lên bài in để kéo giảm phế phẩm xuống dưới 2.5%',
+          ownerName: 'Trần Đình Trọng (Kỹ thuật)',
+          dueDate: addLocalDaysYmd(15, currentToday),
+          status: 'EXECUTING',
+        },
+        {
+          id: 'tows-st-1',
+          strategyType: 'ST',
+          actionTitle: 'Định vị thương hiệu MVĐN ở phân khúc chất lượng cao, từ chối cạnh tranh phá giá ở phân khúc tem nhãn cấp thấp',
+          ownerName: 'Ban Giám Đốc',
+          dueDate: addLocalDaysYmd(60, currentToday),
+          status: 'PLANNED',
+        },
+        {
+          id: 'tows-wt-1',
+          strategyType: 'WT',
+          actionTitle: 'Đàm phán hợp đồng cung ứng decal Fasson kỳ hạn 6 tháng để cố định đơn giá và dự phòng tồn kho an toàn 20%',
+          ownerName: 'Khối Mua Hàng & Kho',
+          dueDate: addLocalDaysYmd(20, currentToday),
+          status: 'PLANNED',
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  const maslowPlans: MaslowEmployeePlan[] = [
+    {
+      id: 'sample-maslow-01',
+      employeeName: staffName1,
+      department: staffDept1,
+      role: staffRole1,
+      dominantNeedLevel: 4,
+      satisfactionScores: {
+        level1Physiological: 9,
+        level2Safety: 9,
+        level3Belonging: 8,
+        level4Esteem: 6,
+        level5SelfActualization: 7,
+      },
+      currentObservation: `Anh ${staffName1} nắm rất vững vận hành xưởng và kỹ thuật máy, nhưng đang cảm thấy tiếng nói chuyên môn trong các quyết định nhận đơn hàng gấp chưa được Ban Giám Đốc tham vấn đầy đủ, có biểu hiện e ngại phản hồi.`,
+      motivationAction: `Trao quyền cho anh ${staffName1} trực tiếp ký duyệt kế hoạch bố trí ca kíp trên ${machineName}, mời anh tham gia phiên thẩm định kỹ thuật trước khi ký kết các hợp đồng tem nhãn phức tạp.`,
+      nextCheckInDate: addLocalDaysYmd(5, currentToday),
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const ffcPraises: FfcPraiseRecord[] = [
+    {
+      id: 'sample-ffc-01',
+      recipientName: staffName2,
+      department: staffDept2,
+      feeling: `Ban Giám Đốc vô cùng trân trọng và an tâm trước tinh thần trách nhiệm, sự nhạy bén và chủ động của em trong đợt điều độ cao điểm vừa qua.`,
+      fact: `Em đã kịp thời phát hiện sớm nguy cơ thiếu hụt vật tư cho đơn hàng ${lsxCode} (${customer}), chủ động thương lượng đổi lịch giao hàng với nhà cung cấp decal sớm hơn 2 ngày và điều chỉnh lịch chạy máy ${machineName} linh hoạt.`,
+      compare: `Nhờ phản ứng nhanh nhạy vượt trội so với các đợt phát sinh trước đây, nhà máy đã không bị gián đoạn 1 giờ máy nào và bàn giao 100% lô hàng cho khách hàng ${customer} đúng hẹn.`,
+      linkedLsxCode: lsxCode,
+      sentToErp: true,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const prepMessages: PrepMessage[] = [
+    {
+      id: 'sample-prep-01',
+      title: `Chỉ thị V/v Kiểm soát nhiệt độ & độ ẩm tiêu chuẩn tại Kho Decal và Phòng Máy In phục vụ ${inProgressCount} LSX Quý 4`,
+      audience: 'Toàn bộ Quản đốc Xưởng, Trưởng BP Kỹ thuật, Tổ trưởng Vận hành máy và Thủ kho Vật tư MVĐN',
+      category: 'DIRECTIVE',
+      pointOpening: `Bắt buộc duy trì nghiêm ngặt nhiệt độ 24°C ± 2°C và độ ẩm 55% ± 5% tại khu vực lưu trữ decal cuộn và phòng máy ${machineName} suốt 24/7.`,
+      reasonWhy: `Giấy decal tự dính là vật liệu rất nhạy cảm với thời tiết; độ ẩm cao gây phồng rộp keo và cong vênh bề mặt giấy, dẫn đến kẹt giấy và sai lệch bước in Flexo.`,
+      exampleEvidence: `Tuần trước khi máy lạnh kho phụ gặp sự cố khiến độ ẩm vọt lên 78%, xưởng đã ghi nhận tỷ lệ lỗi nhão keo làm hao hụt gần 1,200 mét decal Fasson trong ca sáng, làm chậm tiến độ giao hàng cho khách hàng.`,
+      pointClosing: `Thủ kho và Kỹ thuật trực ca ghi nhật ký đo nhiệt ẩm 3 lần/ngày; mọi sai lệch quá ngưỡng phải báo cáo Quản đốc xử lý bật máy hút ẩm dự phòng ngay trong vòng 15 phút.`,
+      publishedToErp: true,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  return {
+    schedules,
+    smartTasks,
+    pdcaCycles,
+    meetings,
+    okrs,
+    swotBoards,
+    maslowPlans,
+    ffcPraises,
+    prepMessages,
+  };
+}
+
+const defaultBundle = buildRealErpSeeds();
+export const INITIAL_SCHEDULES: ScheduleItem[] = defaultBundle.schedules;
+export const INITIAL_SMART_TASKS: SmartTask[] = defaultBundle.smartTasks;
+export const INITIAL_PDCA_CYCLES: PdcaCycle[] = defaultBundle.pdcaCycles;
+export const INITIAL_MEETINGS_369: Meeting369[] = defaultBundle.meetings;
+export const INITIAL_OKRS: OkrObjective[] = defaultBundle.okrs;
+export const INITIAL_SWOT_BOARDS: SwotBoard[] = defaultBundle.swotBoards;
+export const INITIAL_MASLOW_PLANS: MaslowEmployeePlan[] = defaultBundle.maslowPlans;
+export const INITIAL_FFC_PRAISES: FfcPraiseRecord[] = defaultBundle.ffcPraises;
+export const INITIAL_PREP_MESSAGES: PrepMessage[] = defaultBundle.prepMessages;
 
 // ─── BỘ CHUẨN HÓA DỮ LIỆU TƯƠNG THÍCH NGƯỢC VỚI BẢN GHI FIRESTORE CŨ (`axis_*`) ─
 function normalizeDocument(collectionName: string, raw: any): any {
@@ -82,7 +674,7 @@ function normalizeDocument(collectionName: string, raw: any): any {
       title: String(raw.title || 'Lịch trình điều hành'),
       startTime,
       endTime: String(raw.endTime || '09:00'),
-      date: String(raw.date || today),
+      date: raw.id === 'sample-sched-01' ? today : String(raw.date || today),
       repeat: raw.repeat || raw.recurrence || 'DAILY',
       category: raw.category || 'MEETING_369',
       priority: raw.priority || 'HIGH',
@@ -104,15 +696,28 @@ function normalizeDocument(collectionName: string, raw: any): any {
       timeBound: String(raw.smart?.timeBound || raw.timeBound || raw.dueDate || today),
     };
     const isCompleted = raw.status === 'DONE' || raw.status === 'COMPLETED';
+    const normalizedStatus: SmartTask['status'] = isCompleted
+      ? 'DONE'
+      : raw.status === 'TODO' || raw.status === 'REVIEW' || raw.status === 'IN_PROGRESS'
+      ? raw.status
+      : 'IN_PROGRESS';
+    const rawId = String(raw.id || `smart-${Date.now()}`);
+    const inferredType: SmartTask['taskType'] =
+      raw.taskType === 'DRI_ACTION' || raw.taskType === 'SMART_GOAL'
+        ? raw.taskType
+        : rawId.startsWith('task-') || rawId.startsWith('dri-') || rawId.startsWith('sample-dri-')
+        ? 'DRI_ACTION'
+        : 'SMART_GOAL';
     return {
       ...raw,
-      id: String(raw.id || `smart-${Date.now()}`),
+      id: rawId,
+      taskType: inferredType,
       title: String(raw.title || 'Nhiệm vụ SMART'),
       department: String(raw.department || 'Sản xuất'),
       assigneeName: String(raw.assigneeName || 'Quản đốc Sản xuất'),
       dueDate: String(raw.dueDate || today),
       priority: raw.priority || 'HIGH',
-      status: isCompleted ? 'DONE' : 'IN_PROGRESS',
+      status: normalizedStatus,
       progress: typeof raw.progress === 'number' ? raw.progress : isCompleted ? 100 : 50,
       smart,
       smartScore: typeof raw.smartScore === 'number' ? raw.smartScore : computeSmartScore(smart),
@@ -150,7 +755,7 @@ function normalizeDocument(collectionName: string, raw: any): any {
       title: String(raw.title || 'Cuộc họp điều hành 3-6-9'),
       topic: String(raw.topic || raw.agenda || raw.title || ''),
       objective: String(raw.objective || 'Ra quyết định & thống nhất hành động ngay trong cuộc họp'),
-      date: String(raw.date || today),
+      date: raw.id === 'sample-meet-01' ? today : String(raw.date || today),
       startTime: String(raw.startTime || raw.time || '08:30'),
       durationMinutes: Number(raw.durationMinutes || 30),
       chairperson: String(raw.chairperson || 'CEO / Giám Đốc Điều Hành'),
@@ -311,17 +916,71 @@ function normalizeDocument(collectionName: string, raw: any): any {
 // ─── HỆ THỐNG LƯU TRỮ DUAL-SYNC (LOCAL MIRROR + FIRESTORE `axis_*`) ─────────
 const STORAGE_PREFIX = 'proceo_v2_';
 
-function loadLocal<T extends { id?: string }>(key: string, _fallback: T[]): T[] {
+function getDeletedSampleIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem('proceo_deleted_sample_ids');
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function markSampleIdDeleted(id: string): void {
+  if (!id.startsWith('sample-')) return;
+  try {
+    const set = getDeletedSampleIds();
+    set.add(id);
+    localStorage.setItem('proceo_deleted_sample_ids', JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+export function mergeWithSampleSeeds<T extends { id: string }>(
+  _collectionName: string,
+  items: T[],
+  seeds: T[]
+): T[] {
+  if (!seeds || seeds.length === 0) return items || [];
+  const deletedSet = getDeletedSampleIds();
+  const seedIds = new Set(seeds.map((s) => s.id));
+  const itemMap = new Map<string, T>();
+
+  // 1. Giữ lại toàn bộ các bản ghi do người dùng tự tạo (không phải ID mẫu hệ thống)
+  (items || []).forEach((item) => {
+    if (item && item.id && !DEMO_IDS.has(item.id) && !seedIds.has(item.id)) {
+      itemMap.set(item.id, item);
+    }
+  });
+
+  // 2. Cập nhật các bản ghi mẫu chuẩn theo dữ liệu mới nhất (từ ERP) nếu chưa bị xóa
+  seeds.forEach((seed) => {
+    if (!deletedSet.has(seed.id)) {
+      itemMap.set(seed.id, seed);
+    }
+  });
+
+  return Array.from(itemMap.values());
+}
+
+function loadLocal<T extends { id?: string }>(key: string, fallback: T[]): T[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!raw) return [];
+    if (!raw) {
+      if (fallback && fallback.length > 0) {
+        saveLocal(key, fallback);
+        return fallback;
+      }
+      return [];
+    }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
+    if (!Array.isArray(parsed)) return fallback || [];
+    const filtered = parsed
       .filter((item) => item && typeof item === 'object' && !DEMO_IDS.has(item.id))
       .map((item) => normalizeDocument(key, item)) as T[];
+    return filtered;
   } catch {
-    return [];
+    return fallback || [];
   }
 }
 
@@ -336,17 +995,46 @@ function saveLocal<T>(key: string, items: T[]): void {
   }
 }
 
+let dynamicSeedsBundle = defaultBundle;
+
+function getCollectionSeeds<T extends { id: string }>(collectionName: string, fallback: T[]): T[] {
+  if (collectionName.includes('schedules')) return (dynamicSeedsBundle.schedules as any) || fallback;
+  if (collectionName.includes('tasks')) return (dynamicSeedsBundle.smartTasks as any) || fallback;
+  if (collectionName.includes('pdca')) return (dynamicSeedsBundle.pdcaCycles as any) || fallback;
+  if (collectionName.includes('meetings')) return (dynamicSeedsBundle.meetings as any) || fallback;
+  if (collectionName.includes('okrs')) return (dynamicSeedsBundle.okrs as any) || fallback;
+  if (collectionName.includes('swot')) return (dynamicSeedsBundle.swotBoards as any) || fallback;
+  if (collectionName.includes('coaching')) return (dynamicSeedsBundle.maslowPlans as any) || fallback;
+  if (collectionName.includes('praises')) return (dynamicSeedsBundle.ffcPraises as any) || fallback;
+  if (collectionName.includes('prep')) return (dynamicSeedsBundle.prepMessages as any) || fallback;
+  return fallback;
+}
+
 export const ceoStorageService = {
+  updateDynamicSeeds(bundle: ReturnType<typeof buildRealErpSeeds>) {
+    dynamicSeedsBundle = bundle;
+  },
+
+  getCollectionSeeds,
+
+  getLocalMerged<T extends { id: string }>(collectionName: string, defaultSeed: T[]): T[] {
+    const activeSeeds = getCollectionSeeds<T>(collectionName, defaultSeed);
+    const local = loadLocal<T>(collectionName, activeSeeds);
+    return mergeWithSampleSeeds(collectionName, local, activeSeeds);
+  },
+
   subscribeCollection<T extends { id: string }>(
     collectionName: string,
     defaultSeed: T[],
     onData: (items: T[]) => void
   ): () => void {
-    // 1. Nạp ngay từ LocalStorage sạch (đã lọc demo IDs)
-    const initial = loadLocal<T>(collectionName, defaultSeed);
-    onData(initial);
+    // 1. Nạp ngay từ LocalStorage sạch và kết hợp với bộ ví dụ mẫu chuẩn
+    const activeSeeds = getCollectionSeeds<T>(collectionName, defaultSeed);
+    const initialLocal = loadLocal<T>(collectionName, activeSeeds);
+    const initialMerged = mergeWithSampleSeeds(collectionName, initialLocal, activeSeeds);
+    onData(initialMerged);
 
-    // 2. Lắng nghe realtime từ Firestore (loại bỏ và xóa vĩnh viễn các bản ghi mẫu demo)
+    // 2. Lắng nghe realtime từ Firestore (loại bỏ và xóa vĩnh viễn các bản ghi mẫu demo cũ)
     let unsubFirestore: (() => void) | null = null;
     try {
       unsubFirestore = onSnapshot(
@@ -368,15 +1056,35 @@ export const ceoStorageService = {
               })
             ) as T[];
 
-          saveLocal(collectionName, remoteItems);
-          onData(remoteItems);
+          // Luôn kết hợp dữ liệu Firestore với các ví dụ mẫu chuẩn mới nhất
+          const freshSeeds = getCollectionSeeds<T>(collectionName, defaultSeed);
+          const merged = mergeWithSampleSeeds(collectionName, remoteItems, freshSeeds);
+          saveLocal(collectionName, merged);
+          onData(merged);
+
+          // Tự động đồng bộ các ví dụ mẫu lên Firestore nếu trên đám mây chưa có
+          if (remoteItems.length === 0 && freshSeeds.length > 0) {
+            freshSeeds.forEach((seed) => {
+              setDoc(doc(db, collectionName, seed.id), removeUndefinedDeep(seed), {
+                merge: true,
+              }).catch(() => {});
+            });
+          }
         },
         () => {
-          // Khi offline hoặc chưa có quyền, dùng local mirror
+          // Khi offline hoặc chưa có quyền, dùng bản hợp nhất từ LocalStorage
+          const freshSeeds = getCollectionSeeds<T>(collectionName, defaultSeed);
+          const local = loadLocal<T>(collectionName, freshSeeds);
+          const merged = mergeWithSampleSeeds(collectionName, local, freshSeeds);
+          onData(merged);
         }
       );
     } catch {
       // Fallback LocalStorage
+      const freshSeeds = getCollectionSeeds<T>(collectionName, defaultSeed);
+      const local = loadLocal<T>(collectionName, freshSeeds);
+      const merged = mergeWithSampleSeeds(collectionName, local, freshSeeds);
+      onData(merged);
     }
 
     return () => {
@@ -418,6 +1126,7 @@ export const ceoStorageService = {
     currentList: T[],
     setList: React.Dispatch<React.SetStateAction<T[]>>
   ): Promise<void> {
+    markSampleIdDeleted(id);
     const nextList = currentList.filter((x) => x.id !== id);
     setList(nextList);
     saveLocal(collectionName, nextList);
@@ -427,5 +1136,108 @@ export const ceoStorageService = {
     } catch {
       // Đã xóa trong Local Mirror
     }
+  },
+
+  /**
+   * Xuất toàn bộ dữ liệu 8 hệ thống quản trị thành chuỗi JSON backup hoàn chỉnh
+   */
+  exportBackupJson(dataSnapshot: {
+    schedules: ScheduleItem[];
+    smartTasks: SmartTask[];
+    pdcaCycles: PdcaCycle[];
+    meetings: Meeting369[];
+    okrs: OkrObjective[];
+    swotBoards: SwotBoard[];
+    maslowPlans: MaslowEmployeePlan[];
+    ffcPraises: FfcPraiseRecord[];
+    prepMessages: PrepMessage[];
+  }): string {
+    const payload = {
+      version: '2.0.0',
+      exportedAt: new Date().toISOString(),
+      appName: 'ProCEO - Personal Executive Management System',
+      data: dataSnapshot,
+    };
+    return JSON.stringify(payload, null, 2);
+  },
+
+  /**
+   * Phục hồi dữ liệu từ file backup JSON
+   */
+  async restoreBackupJson(
+    jsonString: string,
+    setters: {
+      setSchedules: (v: ScheduleItem[]) => void;
+      setSmartTasks: (v: SmartTask[]) => void;
+      setPdcaCycles: (v: PdcaCycle[]) => void;
+      setMeetings: (v: Meeting369[]) => void;
+      setOkrs: (v: OkrObjective[]) => void;
+      setSwotBoards: (v: SwotBoard[]) => void;
+      setMaslowPlans: (v: MaslowEmployeePlan[]) => void;
+      setFfcPraises: (v: FfcPraiseRecord[]) => void;
+      setPrepMessages: (v: PrepMessage[]) => void;
+    }
+  ): Promise<{ success: boolean; message: string; count?: number }> {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed || !parsed.data) {
+        return { success: false, message: 'File backup không hợp lệ hoặc thiếu cấu trúc data.' };
+      }
+      const d = parsed.data;
+      if (Array.isArray(d.schedules)) {
+        saveLocal('axis_ceo_schedules', d.schedules);
+        setters.setSchedules(d.schedules);
+      }
+      if (Array.isArray(d.smartTasks)) {
+        saveLocal('axis_ceo_tasks', d.smartTasks);
+        setters.setSmartTasks(d.smartTasks);
+      }
+      if (Array.isArray(d.pdcaCycles)) {
+        saveLocal('axis_ceo_pdca', d.pdcaCycles);
+        setters.setPdcaCycles(d.pdcaCycles);
+      }
+      if (Array.isArray(d.meetings)) {
+        saveLocal('axis_ceo_meetings', d.meetings);
+        setters.setMeetings(d.meetings);
+      }
+      if (Array.isArray(d.okrs)) {
+        saveLocal('axis_ceo_okrs', d.okrs);
+        setters.setOkrs(d.okrs);
+      }
+      if (Array.isArray(d.swotBoards)) {
+        saveLocal('axis_ceo_swot', d.swotBoards);
+        setters.setSwotBoards(d.swotBoards);
+      }
+      if (Array.isArray(d.maslowPlans)) {
+        saveLocal('axis_ceo_coaching', d.maslowPlans);
+        setters.setMaslowPlans(d.maslowPlans);
+      }
+      if (Array.isArray(d.ffcPraises)) {
+        saveLocal('axis_ceo_praises', d.ffcPraises);
+        setters.setFfcPraises(d.ffcPraises);
+      }
+      if (Array.isArray(d.prepMessages)) {
+        saveLocal('axis_ceo_prep_docs', d.prepMessages);
+        setters.setPrepMessages(d.prepMessages);
+      }
+      return { success: true, message: 'Đã phục hồi dữ liệu thành công!', count: Object.keys(d).length };
+    } catch (e: any) {
+      return { success: false, message: `Lỗi đọc dữ liệu backup: ${e.message || String(e)}` };
+    }
+  },
+
+  getOperatingMode(): 'PERSONAL' | 'ORGANIZATION' {
+    try {
+      const saved = localStorage.getItem('proceo_operating_mode');
+      return saved === 'ORGANIZATION' ? 'ORGANIZATION' : 'PERSONAL';
+    } catch {
+      return 'PERSONAL';
+    }
+  },
+
+  setOperatingMode(mode: 'PERSONAL' | 'ORGANIZATION'): void {
+    try {
+      localStorage.setItem('proceo_operating_mode', mode);
+    } catch {}
   },
 };

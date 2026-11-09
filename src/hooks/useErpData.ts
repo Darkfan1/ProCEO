@@ -15,6 +15,7 @@ import {
   ErpDisciplineRecord,
   ErpTrainingPlan,
   ErpStaffMember,
+  ErpRadarMetrics,
 } from '../types/erpTypes';
 import { getLocalTodayYmd } from '../utils/dateUtils';
 import {
@@ -26,26 +27,7 @@ import {
   getPositionPriority,
 } from '../utils/erpDataUtils';
 
-export interface ErpRadarMetrics {
-  totalLsxCount: number;
-  inProgressLsxCount: number;
-  completedLsxCount: number;
-  overdueLsx: ErpLsxOrder[];
-  nearingDeadlineLsx: ErpLsxOrder[];
-  pendingIntakesCount: number;
-  pendingIntakes: ErpOrderIntake[];
-  todayNewIntakesCount: number;
-  todayNewIntakesQuantity: number;
-  todayNewIntakes: ErpOrderIntake[];
-  pendingProposals: ErpProposal[];
-  todayReportsCount: number;
-  todayFinishedQuantity: number;
-  todayDefectiveQuantity: number;
-  activeWorkersToday: number;
-  totalPersonnelCount: number;
-  onTimeLsxRate: number;
-  idleMachinesCount: number;
-}
+export type { ErpRadarMetrics };
 
 export function useErpData(enabled = true) {
   const [globalMonthFilter, setGlobalMonthFilter] = useState<'CURRENT_MONTH' | 'ALL'>('CURRENT_MONTH');

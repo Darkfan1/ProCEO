@@ -13,11 +13,13 @@ import {
 interface ErpAdminLoginGateProps {
   onLogin: (usernameOrEmail: string, password: string) => Promise<boolean>;
   error: string | null;
+  onQuickDevLogin?: () => void;
 }
 
 export const ErpAdminLoginGate: React.FC<ErpAdminLoginGateProps> = ({
   onLogin,
   error,
+  onQuickDevLogin,
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -142,6 +144,16 @@ export const ErpAdminLoginGate: React.FC<ErpAdminLoginGateProps> = ({
                 </>
               )}
             </button>
+
+            {onQuickDevLogin && (
+              <button
+                type="button"
+                onClick={onQuickDevLogin}
+                className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>⚡ Trải nghiệm nhanh quyền Giám Đốc (CEO Mode)</span>
+              </button>
+            )}
           </form>
 
           {/* Footer Trạng thái Bảo mật */}

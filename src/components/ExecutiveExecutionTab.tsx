@@ -201,6 +201,8 @@ interface ExecutiveExecutionTabProps {
   onOpenTheoryDrawer: (code: FrameworkCode) => void;
   onNavigateTab: (tab: CeoTabId, subView?: string, prefill?: any) => void;
   activeUser?: ErpUser | null;
+  initialStage?: ExecutionStage;
+  viewScope?: 'PDCA_SOP' | 'MEETINGS' | 'ALL';
 }
 
 export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
@@ -228,16 +230,35 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
   onOpenTheoryDrawer,
   onNavigateTab,
   activeUser,
+  initialStage,
+  viewScope = 'ALL',
 }) => {
   const todayYmd = getLocalTodayYmd();
 
   // ─── 1. BƯỚC THỰC THI HIỆN TẠI TRONG LUỒNG KHÉP KÍN ───────────────────────
   const [activeStage, setActiveStage] = useState<ExecutionStage>(() => {
+    if (viewScope === 'MEETINGS') return 'MEETINGS';
+    if (viewScope === 'PDCA_SOP') return navIntent?.subView === 'SOP' ? 'SOP' : 'PDCA';
+    if (initialStage) return initialStage;
     if (navIntent?.subView === 'PDCA') return 'PDCA';
     if (navIntent?.subView === 'MEETINGS') return 'MEETINGS';
     if (navIntent?.subView === 'SOP') return 'SOP';
     return 'SMART';
   });
+
+  useEffect(() => {
+    if (viewScope === 'MEETINGS') {
+      setActiveStage('MEETINGS');
+      return;
+    }
+    if (viewScope === 'PDCA_SOP') {
+      setActiveStage((prev) => (prev === 'SOP' ? 'SOP' : 'PDCA'));
+      return;
+    }
+    if (initialStage) {
+      setActiveStage(initialStage);
+    }
+  }, [initialStage, viewScope]);
 
   // Đồng bộ khi có navIntent từ bên ngoài (Cockpit, Mindset, etc.)
   useEffect(() => {
@@ -595,6 +616,14 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
 
   // 1-Click: Đưa chu trình PDCA vào Họp 3-6-9
   const handleInitiateMeetingFromPdca = (cycle: PdcaCycle) => {
+    if (viewScope === 'PDCA_SOP') {
+      onNavigateTab('meetings', 'MEETINGS', {
+        title: `Họp Kiểm Tra Pha Check: ${cycle.title}`,
+        assignee: cycle.ownerName,
+        pdcaCycle: cycle,
+      });
+      return;
+    }
     setActiveStage('MEETINGS');
     setIsMeetingModalOpen(true);
     setEditingMeeting(null);
@@ -782,6 +811,82 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
     dialogService.toast(`Đã giao việc "${taskTitle}" cho ${assigneeName}!`, 'success');
   };
 
+  // Nhận dữ liệu chuyển tiếp 1-Click cho PDCA và Họp 3-6-9
+  useEffect(() => {
+    if (!navIntent) return;
+
+    if (navIntent.tab === 'pdca') {
+      if (navIntent.subView === 'SOP') {
+        setActiveStage('SOP');
+        onClearIntent();
+        return;
+      }
+      setActiveStage('PDCA');
+      if (navIntent.prefillSmartTask) {
+        void handleInitiatePdcaFromSmart(navIntent.prefillSmartTask);
+        onClearIntent();
+      } else if (
+        navIntent.prefillTitle ||
+        navIntent.prefillAssignee ||
+        navIntent.prefillLsxCode
+      ) {
+        setEditingPdcaCycle(null);
+        setPdcaTitle(navIntent.prefillTitle || '');
+        setPdcaOwner(navIntent.prefillAssignee || '');
+        setPdcaDueDate(todayYmd);
+        setPdcaLinkedLsxCode(navIntent.prefillLsxCode);
+        setPdcaProblem(navIntent.prefillDescription || '');
+        setPdcaExperiment('');
+        setPdcaCheck('');
+        setPdcaAct('');
+        setPdcaMetricBaseline('');
+        setPdcaMetricTarget('');
+        setPdcaMetricActual('Đang theo dõi');
+        setIsPdcaModalOpen(true);
+        onClearIntent();
+      }
+      return;
+    }
+
+    if (navIntent.tab === 'meetings') {
+      setActiveStage('MEETINGS');
+      if (navIntent.prefillSmartTask) {
+        handleInitiateMeetingFromSmart(navIntent.prefillSmartTask);
+        onClearIntent();
+      } else if (navIntent.prefillPdcaCycle) {
+        const cycle = navIntent.prefillPdcaCycle;
+        setEditingMeeting(null);
+        setMeetingTitle(`Họp Kiểm Tra Pha Check: ${cycle.title}`);
+        setMeetingTopic(
+          `Đo lường kết quả thực tế ("${cycle.metricActual}") so với mục tiêu ("${cycle.metricTarget}")`
+        );
+        setMeetingObjective(
+          `Chốt giải pháp dứt điểm tháo gỡ điểm nghẽn chu trình PDCA "${cycle.title}"`
+        );
+        setMeetingParticipants([
+          'Ban Giám Đốc (Chủ tọa)',
+          cycle.ownerName,
+          'Bộ phận QC / Kỹ thuật',
+        ]);
+        setMeetingLinkedPdcaId(cycle.id);
+        setIsMeetingModalOpen(true);
+        onClearIntent();
+      } else if (navIntent.prefillTitle || navIntent.prefillAssignee) {
+        resetMeetingForm();
+        setMeetingTitle(navIntent.prefillTitle || '');
+        setMeetingTopic(navIntent.prefillDescription || navIntent.prefillTitle || '');
+        setMeetingObjective('Thống nhất giải pháp, phân quyền và chốt thời hạn cam kết');
+        setMeetingParticipants(
+          navIntent.prefillAssignee
+            ? ['Ban Giám Đốc (Chủ tọa)', navIntent.prefillAssignee]
+            : ['Ban Giám Đốc', 'Quản đốc Sản xuất']
+        );
+        setIsMeetingModalOpen(true);
+        onClearIntent();
+      }
+    }
+  }, [navIntent]);
+
   // ───────────────────────────────────────────────────────────────────────────
   // STAGE 4: CHUẨN HÓA SOP STATE & HANDLERS
   // ───────────────────────────────────────────────────────────────────────────
@@ -879,24 +984,59 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ─── THANH ĐIỀU HƯỚNG BƯỚC THỰC THI (EXECUTIVE STEPPER RIBBON) ─── */}
+      {/* ─── THANH ĐIỀU HƯỚNG TỐI GIẢN THEO PHẠM VI TAB ─── */}
+      {viewScope === 'PDCA_SOP' && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1 no-print">
+          <div className="inline-flex p-1 rounded-2xl bg-slate-200/70 border border-slate-300/60 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveStage('PDCA')}
+              className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeStage !== 'SOP'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Chu Trình Cải Tiến PDCA ({activePdcaCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveStage('SOP')}
+              className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeStage === 'SOP'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Quy Trình Chuẩn Hóa SOP ({standardizedSopCount})</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onOpenTheoryDrawer('PDCA')}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+              <span>Sổ tay PDCA & SOP</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {viewScope === 'ALL' && (
       <div className="vista-hero p-3 sm:p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-white/10 text-white border border-white/15">
-                <Target className="w-4 h-4 text-emerald-400" />
-              </span>
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-                Trung Tâm Quản Trị Thực Thi
-              </h2>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-mono font-bold">
-                CLOSED-LOOP 4 GIAI ĐOẠN
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 font-medium">
-              Thiết lập mục tiêu đo lường ➔ Vận hành thực thi ➔ Giám sát kỷ luật ➔ Đóng gói quy trình chuẩn SOP.
-            </p>
+        <div className="flex items-center justify-between gap-3 no-print">
+          <div className="flex items-center gap-2 text-white">
+            <span className="p-1 rounded-lg bg-white/10 border border-white/15">
+              <Target className="w-4 h-4 text-emerald-400" />
+            </span>
+            <span className="text-xs font-bold tracking-tight text-slate-200 uppercase">
+              Chu Trình Thực Thi Khép Kín 4 Giai Đoạn
+            </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -994,6 +1134,7 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* ───────────────────────────────────────────────────────────────────── */}
       {/* GIAI ĐOẠN 1: MỤC TIÊU TRỌNG TÂM (SMART)                                */}
@@ -1604,6 +1745,16 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                {viewScope === 'MEETINGS' && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenTheoryDrawer('MEETING_369')}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Sổ tay 3-6-9</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -1897,9 +2048,24 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
                             </div>
                           </td>
 
-                          {/* Thao tác (ẩn mặc định, chỉ hiện khi hover) */}
+                           {/* Thao tác (ẩn mặc định, chỉ hiện khi hover) */}
                           <td className="py-3 px-3 text-right whitespace-nowrap">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-end gap-1">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onNavigateTab('prep', undefined, {
+                                    title: `Ban hành & Áp dụng quy trình chuẩn ${p.sopStandardizedCode || 'SOP'}: ${p.sopStandardizedTitle || p.title}`,
+                                    audience: `Toàn xưởng & Bộ phận ${p.area}`,
+                                    description: `Kết quả cải tiến từ ${p.metricBaseline} ➔ ${p.metricActual}. Nội dung chuẩn hóa bắt buộc áp dụng: ${p.actStandardize || p.doExperiment}`,
+                                  })
+                                }
+                                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="Soạn chỉ đạo PREP ban hành quy trình chuẩn này xuống hệ thống ERP MVĐN"
+                              >
+                                <Send className="w-3 h-3 text-emerald-400" />
+                                <span>Chỉ đạo PREP</span>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => triggerPrint(printId, `SOP_${p.sopStandardizedCode || p.id}`)}

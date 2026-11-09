@@ -278,33 +278,28 @@ export const MindsetHandbookTab: React.FC<MindsetHandbookTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* BANNER THƯ VIỆN TÀI LIỆU QUẢN TRỊ CEO (VISTA AERO 2.5D GRAPHITE) */}
-      <div className="vista-hero p-5 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] font-bold uppercase tracking-wider border border-white/10">
-              <BookOpen className="w-3.5 h-3.5" />
-              CEO Knowledge Base • 8 Tài Liệu Chuyên Khảo
-            </div>
-            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight">
-              Thư Viện Tài Liệu Quản Trị & Điều Hành Doanh Nghiệp
-            </h2>
+      {/* BANNER THƯ VIỆN TÀI LIỆU QUẢN TRỊ CEO (Không lặp lại tiêu đề Header bar) */}
+      <div className="vista-hero p-4 sm:p-5 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 text-slate-300 text-[11px] font-bold uppercase tracking-wider border border-white/10">
+            <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+            <span>8 Chuyên Khảo Điều Hành Doanh Nghiệp</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               onClick={handlePrintCurrentDoc}
-              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/15 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/15 transition-all cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 text-slate-300" />
-              In A4 ({activeDoc.docNumber})
+              <span>In A4 ({activeDoc.docNumber})</span>
             </button>
             <button
               onClick={() => onApplyFramework(activeDoc.targetTab, activeDoc.targetSubView)}
-              className="btn-25d-secondary px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="btn-25d-secondary px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
             >
               <Sparkles className="w-3.5 h-3.5 text-slate-700" />
-              Mở Công Cụ {activeDoc.shortName}
+              <span>Mở Công Cụ {activeDoc.shortName}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

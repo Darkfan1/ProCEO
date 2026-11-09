@@ -23,6 +23,63 @@ export interface AiPdcaEvaluationResult {
   smartProgressRecommended: number;
 }
 
+export interface AiMaslowConsultingResult {
+  dominantNeedLevel: 1 | 2 | 3 | 4 | 5;
+  levelName: string;
+  analysisReasoning: string;
+  ceoActionPlan: string;
+  suggestedPraiseHint?: string;
+  roleTierDetected?: 'MANAGEMENT' | 'SPECIALIST' | 'OPERATOR';
+  satisfactionScores: {
+    level1Physiological: number;
+    level2Safety: number;
+    level3Belonging: number;
+    level4Esteem: number;
+    level5SelfActualization: number;
+  };
+}
+
+export type StaffRoleTier = 'MANAGEMENT' | 'SPECIALIST' | 'OPERATOR';
+
+export function detectStaffRoleTier(role?: string, department?: string): StaffRoleTier {
+  const text = `${role || ''} ${department || ''}`.toLowerCase();
+  if (
+    text.includes('quản lý') ||
+    text.includes('quản đốc') ||
+    text.includes('trưởng') ||
+    text.includes('phó') ||
+    text.includes('giám đốc') ||
+    text.includes('kế toán trưởng') ||
+    text.includes('chủ nhiệm') ||
+    text.includes('lead') ||
+    text.includes('manager') ||
+    text.includes('head') ||
+    text.includes('supervisor')
+  ) {
+    return 'MANAGEMENT';
+  }
+  if (
+    text.includes('kỹ sư') ||
+    text.includes('thiết kế') ||
+    text.includes('chế bản') ||
+    text.includes('kế hoạch') ||
+    text.includes('điều độ') ||
+    text.includes('qa') ||
+    text.includes('qc') ||
+    text.includes('kcs') ||
+    text.includes('thu mua') ||
+    text.includes('kho') ||
+    text.includes('kế toán') ||
+    text.includes('chuyên viên') ||
+    text.includes('nhân viên') ||
+    text.includes('engineer') ||
+    text.includes('specialist')
+  ) {
+    return 'SPECIALIST';
+  }
+  return 'OPERATOR';
+}
+
 export interface AiMeetingPlanFromSmart {
   title: string;
   topic: string;
@@ -386,6 +443,218 @@ YÊU CẦU BẮT BUỘC ĐỐI VỚI TỪNG TIÊU CHÍ (TUYỆT ĐỐI KHÔNG D�
       fact: `Cụ thể, tại bộ phận ${department}, ${achievementFact}.`,
       compare:
         'Kết quả này vượt trội hơn hẳn định mức trung bình và truyền cảm hứng làm việc chất lượng cao cho toàn thể anh chị em trong công ty!',
+    };
+  },
+
+  /**
+   * 3.5. Chẩn đoán Tầng Tháp Maslow & Tư Vấn Hành Động CEO dựa trên Biểu hiện quan sát và ERP MVĐN
+   * Nhận diện chính xác Chức vụ & Vị thế tổ chức (Quản lý cấp trung vs Kỹ sư chuyên môn vs Thợ vận hành)
+   */
+  analyzeEmployeeMaslowNeeds: async (params: {
+    employeeName: string;
+    department: string;
+    role: string;
+    roleTier?: 'MANAGEMENT' | 'SPECIALIST' | 'OPERATOR';
+    observations: string;
+    erpContext?: {
+      status?: string;
+      totalReports?: number;
+      recentStages?: string[];
+      recentLsxCodes?: string[];
+      defectSummary?: string;
+      outputSummary?: string;
+    };
+  }): Promise<AiMaslowConsultingResult> => {
+    const apiKey = getApiKey();
+    const roleTier = params.roleTier || detectStaffRoleTier(params.role, params.department);
+    const tierLabel =
+      roleTier === 'MANAGEMENT'
+        ? 'CẤP QUẢN LÝ / LÃNH ĐẠO CẤP TRUNG (Trực thuộc CEO/Ban Giám Đốc. Quản lý điều hành phân xưởng hoặc phòng ban, chịu trách nhiệm về đội ngũ thợ, mục tiêu OEE, tiến độ và tỷ lệ phế phẩm)'
+        : roleTier === 'SPECIALIST'
+        ? 'CẤP KỸ SƯ / CHUYÊN VIÊN (Chuyên môn sâu về Kỹ thuật, Chế bản & Khuôn in, QA/QC, Điều độ kế hoạch, Mua hàng)'
+        : 'CẤP KỸ THUẬT VIÊN / THỢ VẬN HÀNH TRỰC TIẾP (Trực tiếp đứng máy in Flexo, bế tem, chia cuộn, kiểm tra lỗi trên từng đơn hàng)';
+
+    const erpSummary =
+      params.erpContext && (params.erpContext.totalReports || 0) > 0
+        ? `Trạng thái: ${params.erpContext.status || 'Chính thức'}, Tham gia trực tiếp ${params.erpContext.totalReports} ca máy, Công đoạn: ${(params.erpContext.recentStages || []).join(', ') || 'Xưởng in & Bế tem Flexo'}, LSX gần nhất: ${(params.erpContext.recentLsxCodes || []).slice(0, 3).join(', ') || 'N/A'}. ${params.erpContext.outputSummary || ''} ${params.erpContext.defectSummary || ''}`
+        : roleTier === 'MANAGEMENT'
+        ? 'Nhân sự cấp quản lý điều hành, phụ trách quản trị mục tiêu OEE, tỷ lệ hao hụt và tiến độ giao hàng chung của toàn bộ phận.'
+        : roleTier === 'SPECIALIST'
+        ? 'Nhân sự khối chuyên môn kỹ thuật & gián tiếp, không tham gia đứng máy trực tiếp.'
+        : 'Nhân sự xưởng vận hành.';
+
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `Bạn là Chuyên gia Cố vấn Quản trị Nhân sự Chiến lược & Huấn luyện Lãnh đạo C-Level (Executive Maslow Coach) cho CEO Công ty Sản xuất Bao bì Tem Nhãn Mã Vạch Đồng Nai (MVĐN).
+
+HỒ SƠ NHÂN SỰ ĐƯỢC CHẨN ĐOÁN:
+- Họ và tên: ${params.employeeName}
+- Vị trí / Chức vụ hiện tại: "${params.role}"
+- Bộ phận: ${params.department}
+- PHÂN HẠNG VỊ THẾ TỔ CHỨC: ${tierLabel}
+- Dữ liệu thực tế từ hệ thống ERP MVĐN: ${erpSummary}
+- Biểu hiện quan sát, tâm tư, phát ngôn & hành vi ghi nhận được từ CEO/Quản lý:
+"${params.observations}"
+
+NGUYÊN TẮC CỐT LÕI (BẮT BUỘC NHẬN DIỆN CHỨC VỤ VÀ TƯ VẤN ĐÚNG TẦM):
+1. NHẬN DIỆN VỊ THẾ & KHÔNG NHẦM LẪN CẤP BẬC:
+   ${
+     roleTier === 'MANAGEMENT'
+       ? `• ĐẶC BIỆT LƯU Ý: Nhân sự ${params.employeeName} là CẤP QUẢN LÝ (Quản Lý Sản Xuất / Quản Đốc / Trưởng Bộ Phận). Họ là lãnh đạo điều hành xưởng, báo cáo trực tiếp cho CEO!
+• TUYỆT ĐỐI KHÔNG ĐƯỢC TƯ VẤN NHƯ ĐỐI VỚI MỘT THỢ ĐỨNG MÁY! Dù trong lời nhận xét của người dùng có nhắc đến thợ in hay kỹ thuật, bạn phải hiểu đây là Quản lý điều hành đội ngũ thợ. KHÔNG ĐƯỢC có câu từ như "chờ quản đốc ghi nhận" vì họ chính là cấp quản lý!
+• Mọi tư vấn cho CEO phải hướng vào: Cách CEO ủy quyền (Delegation), trao quyền tự chủ điều hành xưởng, tôn trọng quyền hạn trước mặt cấp dưới, cơ chế thưởng KPI/OKR theo hiệu quả toàn xưởng (OEE, tiến độ giao hàng, kiểm soát phế phẩm), và cách CEO làm việc 1-1 với một Quản lý cấp trung.`
+       : roleTier === 'SPECIALIST'
+       ? `• Nhân sự là CẤP KỸ SƯ / CHUYÊN VIÊN. Tư vấn của bạn phải tập trung vào uy tín chuyên môn, thẩm quyền kỹ thuật, công cụ đo kiểm chuẩn, giảm thiểu rủi ro đổ lỗi và sự phối hợp liên phòng ban.`
+       : `• Nhân sự là THỢ VẬN HÀNH / CÔNG NHÂN TRỰC TIẾP. Tư vấn tập trung vào tay nghề, bảo hộ an toàn máy in/bế, phụ cấp ca kíp, nâng bậc thợ và văn hóa khen ngợi FFC cụ thể trên từng LSX.`
+   }
+
+2. CHẨN ĐOÁN TẦNG THÁP MASLOW:
+   Xác định nhân sự đang có nhu cầu trọng tâm nhất ở TẦNG NÀO của Tháp Maslow (1 đến 5) phù hợp với vị thế ${params.role}:
+   - Tầng 1: Nhu cầu Thiết yếu (Lương & Chế độ đãi ngộ tương xứng với cấp bậc).
+   - Tầng 2: Nhu cầu An toàn & Quyền hạn (Với Quản lý: Quyền hạn điều hành rõ ràng, không bị can thiệp vi mô/vượt cấp; Với Thợ: An toàn lao động, việc làm ổn định).
+   - Tầng 3: Nhu cầu Gắn kết & Tin cậy (Với Quản lý: Sự tin cậy từ CEO & phối hợp liên phòng ban; Với Thợ: Tình đồng đội ca kíp).
+   - Tầng 4: Nhu cầu Tôn trọng & Ghi nhận (Với Quản lý: Tôn trọng vị thế lãnh đạo, tiếng nói chiến lược trong giao ban 3-6-9, ghi nhận công trạng quản trị; Với Thợ: Khen tay nghề FFC).
+   - Tầng 5: Nhu cầu Tự khẳng định & Cống hiến (Với Quản lý: Kiến tạo hệ thống SOP, dẫn dắt đổi mới công nghệ RFID/Lean, đồng hành dài hạn; Với Thợ: Trở thành thợ bậc cao, truyền nghề).
+
+3. YÊU CẦU ĐẦU RA:
+   - dominantNeedLevel: Số nguyên 1, 2, 3, 4 hoặc 5.
+   - levelName: Tên tầng tương ứng (ví dụ: "Cấp 4: Nhu Cầu Tôn Trọng Năng Lực Lãnh Đạo & Vị Thế Quản Lý").
+   - analysisReasoning: Phân tích sâu sắc tâm lý gắn liền với chức vụ "${params.role}" và dữ liệu ERP.
+   - ceoActionPlan: Đưa ra 3-4 bước hành động cụ thể đánh số 1, 2, 3, 4 có tính thực thi cao ngay trong tuần dành cho CEO.`,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                dominantNeedLevel: { type: Type.INTEGER, description: '1, 2, 3, 4, or 5' },
+                levelName: { type: Type.STRING },
+                analysisReasoning: { type: Type.STRING },
+                ceoActionPlan: { type: Type.STRING },
+                suggestedPraiseHint: { type: Type.STRING },
+                satisfactionScores: {
+                  type: Type.OBJECT,
+                  properties: {
+                    level1Physiological: { type: Type.INTEGER },
+                    level2Safety: { type: Type.INTEGER },
+                    level3Belonging: { type: Type.INTEGER },
+                    level4Esteem: { type: Type.INTEGER },
+                    level5SelfActualization: { type: Type.INTEGER },
+                  },
+                  required: [
+                    'level1Physiological',
+                    'level2Safety',
+                    'level3Belonging',
+                    'level4Esteem',
+                    'level5SelfActualization',
+                  ],
+                },
+              },
+              required: [
+                'dominantNeedLevel',
+                'levelName',
+                'analysisReasoning',
+                'ceoActionPlan',
+                'satisfactionScores',
+              ],
+            },
+          },
+        });
+
+        if (response.text) {
+          const parsed = JSON.parse(response.text);
+          const lvl = Math.max(1, Math.min(5, Number(parsed.dominantNeedLevel) || 3)) as 1 | 2 | 3 | 4 | 5;
+          return {
+            ...parsed,
+            dominantNeedLevel: lvl,
+            roleTierDetected: roleTier,
+          };
+        }
+      } catch (e) {
+        console.warn('[ceoAiService] Fallback local Maslow analyzer:', e);
+      }
+    }
+
+    // Heuristic Fallback thông minh chuẩn hóa theo Chức Vụ khi không có kết nối internet
+    const obsLower = (params.observations || '').toLowerCase();
+    let detectedLevel: 1 | 2 | 3 | 4 | 5 = 4;
+    let levelTitle = '';
+    let reasoning = '';
+    let action = '';
+
+    if (roleTier === 'MANAGEMENT') {
+      if (obsLower.includes('lương') || obsLower.includes('thưởng') || obsLower.includes('đãi ngộ') || obsLower.includes('thu nhập') || obsLower.includes('chỉ tiêu')) {
+        detectedLevel = 1;
+        levelTitle = 'Cấp 1: Đãi Ngộ & Cơ Chế Thu Nhập Xứng Đáng Với Trách Nhiệm Quản Lý';
+        reasoning = `Nhân sự ${params.employeeName} với vai trò ${params.role} đang gánh vác trách nhiệm điều hành lớn nhưng cảm thấy cơ chế đãi ngộ và thưởng hiệu quả sản xuất chưa tương xứng với công sức và rủi ro quản trị.`;
+        action = `CEO nên: 1) Rà soát lại cơ chế khoán sản lượng xưởng và quỹ thưởng theo hiệu quả OEE; 2) Thiết lập chính sách thưởng KPI rõ ràng gắn với tỷ lệ giao hàng đúng hẹn và giảm phế phẩm; 3) Gặp gỡ riêng khẳng định sự đầu tư xứng đáng của công ty cho đội ngũ lãnh đạo chủ chốt.`;
+      } else if (obsLower.includes('vi mô') || obsLower.includes('vượt cấp') || obsLower.includes('quyền') || obsLower.includes('can thiệp') || obsLower.includes('bất an') || obsLower.includes('sợ sai')) {
+        detectedLevel = 2;
+        levelTitle = 'Cấp 2: An Toàn Về Quyền Hạn & Tự Chủ Điều Hành Cấp Quản Lý';
+        reasoning = `Nhân sự ${params.employeeName} đang cần sự bảo đảm vững chắc về ranh giới quyền hạn, tránh tình trạng bị chỉ đạo vượt cấp qua mặt quản lý làm suy giảm uy tín điều hành trước công nhân xưởng.`;
+        action = `CEO nên: 1) Cam kết nguyên tắc 'Ủy quyền có kiểm soát' - CEO chỉ đạo thông qua ${params.role}, không can thiệp vi mô xuống từng thợ; 2) Hậu thuẫn mạnh mẽ cho các quyết định điều chuyển ca và kỷ luật của quản lý; 3) Thiết lập kênh báo cáo định kỳ thay vì kiểm tra đột xuất gây căng thẳng.`;
+      } else if (obsLower.includes('phối hợp') || obsLower.includes('liên phòng') || obsLower.includes('tin cậy') || obsLower.includes('gắn kết') || obsLower.includes('đoàn kết')) {
+        detectedLevel = 3;
+        levelTitle = 'Cấp 3: Tin Cậy Điều Hành & Phối Hợp Liên Phòng Ban';
+        reasoning = `Nhân sự ${params.employeeName} (${params.role}) mong muốn có sự tin cậy cao hơn từ Ban Giám Đốc và sự phối hợp nhịp nhàng, thông suốt từ các phòng ban liên quan (Kế hoạch, Mua hàng, Kỹ thuật).`;
+        action = `CEO nên: 1) Chủ trì giao ban liên bộ phận để tháo gỡ điểm nghẽn bàn giao công việc; 2) Khẳng định vai trò hạt nhân của khối Quản lý trong bộ máy điều hành; 3) Xây dựng cơ chế trao đổi mở định kỳ 1-1 với CEO.`;
+      } else if (obsLower.includes('sáng kiến') || obsLower.includes('sop') || obsLower.includes('chiến lược') || obsLower.includes('đổi mới') || obsLower.includes('rfid') || obsLower.includes('kế cận') || obsLower.includes('cống hiến')) {
+        detectedLevel = 5;
+        levelTitle = 'Cấp 5: Tự Khẳng Định & Kiến Tạo Hệ Thống Sản Xuất Bền Vững';
+        reasoning = `Nhân sự ${params.employeeName} đã khẳng định được năng lực vận hành và đang có khát vọng lớn trong việc chuẩn hóa toàn bộ quy trình xưởng (SOP), dẫn dắt các dự án công nghệ đột phá (nhãn RFID, Lean Kaizen) và đào tạo thế hệ kế cận.`;
+        action = `CEO nên: 1) Trao toàn quyền (Empowerment) cho anh ${params.employeeName} làm Chủ nhiệm Đề án chuẩn hóa quy trình sản xuất; 2) Mời tham gia Ban Cố Vấn Chiến Lược C-Level của công ty; 3) Thiết lập cơ chế thưởng chia sẻ giá trị (thưởng % trên chi phí phế phẩm tiết kiệm được hàng quý).`;
+      } else {
+        detectedLevel = 4;
+        levelTitle = 'Cấp 4: Tôn Trọng Năng Lực Lãnh Đạo & Vị Thế Quản Lý';
+        reasoning = `Nhân sự ${params.employeeName} giữ vị trí ${params.role}, có năng lực chuyên môn và quản trị vững vàng, khao khát được Ban Giám Đốc tin cậy lắng nghe các đề xuất cải tiến và tôn trọng vị thế người đứng đầu bộ phận.`;
+        action = `CEO nên: 1) Tham vấn ý kiến chuyên môn của anh ${params.employeeName} trước khi đưa ra các quyết định thay đổi về kế hoạch sản xuất; 2) Tuyên dương công khai trước buổi giao ban Ban Giám Đốc về thành tích quản trị của bộ phận; 3) Trao quyền chủ động thử nghiệm các phương án kỹ thuật mới do anh đề xuất.`;
+      }
+    } else {
+      // Dành cho Kỹ sư và Thợ vận hành
+      if (obsLower.includes('lương') || obsLower.includes('tăng ca') || obsLower.includes('tiền')) {
+        detectedLevel = 1;
+        levelTitle = 'Cấp 1: Nhu Cầu Thu Nhập Mưu Sinh & Phụ Cấp Ca';
+        reasoning = `Nhân sự ${params.employeeName} (${params.role}) đang có áp lực lớn về tài chính và sinh kế, mong muốn được bảo đảm thu nhập và giờ tăng ca hợp lý.`;
+        action = `CEO và Quản lý bộ phận nên: 1) Bố trí ca làm việc công bằng; 2) Đảm bảo chi trả phụ cấp ca đêm và thưởng năng suất kịp thời; 3) Lắng nghe hỗ trợ nếu có khó khăn đột xuất.`;
+      } else if (obsLower.includes('an toàn') || obsLower.includes('phạt') || obsLower.includes('sợ hỏng')) {
+        detectedLevel = 2;
+        levelTitle = 'Cấp 2: Nhu Cầu An Toàn Lao Động & Ổn Định Việc Làm';
+        reasoning = `Nhân sự lo ngại về an toàn máy móc hoặc sợ bị phạt khi xảy ra lỗi decal.`;
+        action = `CEO nên: 1) Chuẩn hóa quy trình an toàn bảo hộ; 2) Áp dụng nguyên tắc học hỏi từ lỗi kỹ thuật, không phạt lỗi vô ý khi chạy thử mẫu; 3) Đảm bảo hợp đồng lao động và bảo hiểm.`;
+      } else if (obsLower.includes('gắn kết') || obsLower.includes('đồng đội') || obsLower.includes('cô lập') || obsLower.includes('hòa nhập')) {
+        detectedLevel = 3;
+        levelTitle = 'Cấp 3: Nhu Cầu Gắn Kết Đồng Đội & Hòa Nhập Văn Hóa';
+        reasoning = `Nhân sự ${params.employeeName} cảm thấy chưa gắn kết chặt chẽ với tập thể, cần sự hỗ trợ kèm cặp và môi trường làm việc cởi mở.`;
+        action = `CEO và Quản đốc nên: 1) Phân công thợ giàu kinh nghiệm kèm cặp trực tiếp; 2) Tổ chức họp ca ngắn chia sẻ khó khăn; 3) Ghi nhận các đóng góp nhỏ để tạo sự tự tin hòa nhập.`;
+      } else if (obsLower.includes('sáng kiến') || obsLower.includes('cải tiến') || obsLower.includes('rfid')) {
+        detectedLevel = 5;
+        levelTitle = 'Cấp 5: Tự Khẳng Định & Cống Hiến Đổi Mới';
+        reasoning = `Nhân sự có tinh thần đổi mới sáng tạo cao, mong muốn chinh phục các kỹ thuật in/bế phức tạp.`;
+        action = `CEO nên: 1) Giao tham gia các dự án tem công nghệ mới; 2) Thưởng nóng khi có sáng kiến giảm hao hụt; 3) Bồi dưỡng trở thành thợ bậc cao hạt giống.`;
+      } else {
+        detectedLevel = 4;
+        levelTitle = 'Cấp 4: Tôn Trọng & Ghi Nhận Tay Nghề (Esteem)';
+        reasoning = `Nhân sự ${params.employeeName} mong muốn tay nghề và sự cống hiến được cấp quản lý và Ban Giám Đốc ghi nhận công khai.`;
+        action = `CEO nên: 1) Khen ngợi công khai theo công thức FFC sau mỗi ca máy xuất sắc; 2) Giao phụ trách các đơn hàng tem đòi hỏi kỹ thuật cao; 3) Nâng bậc thợ tương xứng với năng lực.`;
+      }
+    }
+
+    return {
+      dominantNeedLevel: detectedLevel,
+      levelName: levelTitle,
+      analysisReasoning: reasoning,
+      ceoActionPlan: action,
+      suggestedPraiseHint: `Ghi nhận năng lực điều hành và tinh thần trách nhiệm của ${params.employeeName} (${params.role}) trong việc kiểm soát tiến độ và chất lượng xưởng.`,
+      roleTierDetected: roleTier,
+      satisfactionScores: {
+        level1Physiological: detectedLevel === 1 ? 4 : 8,
+        level2Safety: detectedLevel <= 2 ? 5 : 8,
+        level3Belonging: detectedLevel === 3 ? 5 : 7,
+        level4Esteem: detectedLevel === 4 ? 5 : 7,
+        level5SelfActualization: detectedLevel === 5 ? 6 : 4,
+      },
     };
   },
 
@@ -1007,5 +1276,31 @@ Yêu cầu xuất JSON:
       sopStandardizedCode: isTargetAchieved ? cleanCode : undefined,
       smartProgressRecommended: isTargetAchieved ? 100 : 75,
     };
+  },
+
+  /**
+   * 11. AI Executive Copilot - Trò chuyện & Cố vấn Điều hành C-Level
+   */
+  chatWithExecutiveAdvisor: async (params: {
+    userMessage: string;
+    systemContext?: string;
+  }): Promise<string> => {
+    const apiKey = getApiKey();
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `${params.systemContext ? `[HỆ THỐNG / BỐI CẢNH ĐIỀU HÀNH]:\n${params.systemContext}\n\n` : ''}[YÊU CẦU TỪ CEO]:\n${params.userMessage}`;
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+        return response.text || 'AI đã xử lý yêu cầu nhưng không có nội dung văn bản phản hồi.';
+      } catch (err) {
+        console.warn('AI Executive Advisor Error:', err);
+      }
+    }
+
+    // Phản hồi mẫu dự phòng ngoại tuyến
+    return `[Chế độ Ngoại Tuyến / ProCEO Advisory]\nĐã tiếp nhận yêu cầu điều hành: "${params.userMessage.slice(0, 80)}...".\nKhuyến nghị ưu tiên: Rà soát các mục tiêu SMART có hạn chót trong tuần, đối chiếu kết quả kiểm tra với chu trình PDCA và triệu tập họp 3-6-9 với DRI phụ trách để giải quyết điểm nghẽn.`;
   },
 };
