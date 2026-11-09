@@ -305,32 +305,37 @@ export const SmartGoalsView: React.FC<SmartGoalsViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ─── 1. THẺ CHỈ SỐ KPI ĐẠT CHUẨN SMART (Không lặp lại tiêu đề Header bar) ─── */}
-      <div className="vista-hero p-3 sm:p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-3 no-print">
-          <div className="flex items-center gap-2 text-white">
-            <span className="p-1 rounded-lg bg-white/10 border border-white/15">
-              <Target className="w-4 h-4 text-emerald-400" />
-            </span>
-            <span className="text-xs font-bold tracking-tight text-slate-200 uppercase">
-              Chỉ Số Thẩm Định Mục Tiêu
-            </span>
+      {/* ─── 1. THẺ CHỈ SỐ KPI ĐẠT CHUẨN SMART (LUXURY EXECUTIVE LIGHT STAGE) ─── */}
+      <div className="ceo-card p-4 sm:p-5 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 no-print">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+              <Target className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-slate-900">
+                Chỉ Số Thẩm Định Mục Tiêu
+              </h2>
+              <p className="text-[11px] text-slate-500 font-normal">
+                Đo lường độ sắc bén và tính khả thi của mục tiêu theo chuẩn SMART
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => onOpenTheoryDrawer('SMART')}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
             >
-              <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+              <BookOpen className="w-3.5 h-3.5 text-amber-500" />
               <span>Sổ tay SMART</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenNewModal}
-              className="px-3 py-1.5 rounded-xl btn-25d-primary font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Thiết Lập Mục Tiêu Mới</span>
@@ -339,52 +344,60 @@ export const SmartGoalsView: React.FC<SmartGoalsViewProps> = ({
         </div>
 
         {/* 4 Thẻ KPI Chiến Lược */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-0.5">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Tổng mục tiêu SMART</span>
-              <Target className="w-3.5 h-3.5 text-emerald-300" />
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <Target className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.total}</span>
-              <span className="text-[11px] font-medium opacity-75">mục tiêu</span>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.total}</span>
+              <span className="text-[11px] font-medium text-slate-500">mục tiêu</span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Đạt chuẩn SMART (≥80)</span>
-              <Award className="w-3.5 h-3.5 text-amber-300" />
+              <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <Award className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.compliant}</span>
-              <span className="text-[11px] font-medium opacity-75">
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.compliant}</span>
+              <span className="text-[11px] font-medium text-slate-500">
                 ({stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 0}%)
               </span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Định lượng con số (M)</span>
-              <TrendingUp className="w-3.5 h-3.5 text-cyan-300" />
+              <div className="w-6 h-6 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.measurable}</span>
-              <span className="text-[11px] font-medium opacity-75">
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.measurable}</span>
+              <span className="text-[11px] font-medium text-slate-500">
                 ({stats.total > 0 ? Math.round((stats.measurable / stats.total) * 100) : 0}%)
               </span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Điểm chuẩn bình quân</span>
-              <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+              <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.avgScore}</span>
-              <span className="text-[11px] font-medium opacity-75">/ 100 điểm</span>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.avgScore}</span>
+              <span className="text-[11px] font-medium text-slate-500">/ 100 điểm</span>
             </div>
           </div>
         </div>

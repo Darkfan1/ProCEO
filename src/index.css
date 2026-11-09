@@ -6,48 +6,48 @@
 [data-theme="grayscale-stage"] {
   --navy-deep: #0f172a;
   --navy-surface: #1e293b;
-  --warm-white: #f8fafc;
-  --champagne-gold: #38bdf8;
-  --champagne-gold-light: #f1f5f9;
-  --stage-bg-top: #f8fafc;
-  --stage-bg-mid: #f1f5f9;
-  --stage-bg-bot: #e2e8f0;
+  --warm-white: #ffffff;
+  --champagne-gold: #0284c7;
+  --champagne-gold-light: #f0f9ff;
+  --stage-bg-top: #ffffff;
+  --stage-bg-mid: #f8fafc;
+  --stage-bg-bot: #f1f5f9;
   --stage-surface: #ffffff;
-  --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #090d16 100%);
   --sidebar-text: #ffffff;
   --sidebar-muted: #94a3b8;
   --accent-primary: #0f172a;
-  --accent-gold: #38bdf8;
-  --accent-soft: #f1f5f9;
-  --border-outer: rgba(15, 23, 42, 0.12);
+  --accent-gold: #0284c7;
+  --accent-soft: #f8fafc;
+  --border-outer: rgba(15, 23, 42, 0.08);
   --border-highlight: rgba(255, 255, 255, 0.95);
 }
 
 [data-theme="aubergine-studio"] {
-  --stage-bg-top: #eceef2;
-  --stage-bg-mid: #e0e4ec;
-  --stage-bg-bot: #d3d8e2;
-  --stage-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 245, 248, 0.92) 100%);
-  --sidebar-bg: linear-gradient(180deg, #27272a 0%, #18181b 50%, #09090b 100%);
+  --stage-bg-top: #f8fafc;
+  --stage-bg-mid: #f1f5f9;
+  --stage-bg-bot: #e2e8f0;
+  --stage-surface: #ffffff;
+  --sidebar-bg: linear-gradient(180deg, #18181b 0%, #09090b 100%);
   --sidebar-text: #fafafa;
   --sidebar-muted: #a1a1aa;
-  --accent-primary: #27272a;
+  --accent-primary: #18181b;
   --accent-soft: #f4f4f5;
-  --border-outer: rgba(113, 113, 122, 0.34);
+  --border-outer: rgba(113, 113, 122, 0.2);
   --border-highlight: rgba(255, 255, 255, 0.95);
 }
 
 [data-theme="rose-stage"] {
-  --stage-bg-top: #f0f1f4;
-  --stage-bg-mid: #e4e6eb;
-  --stage-bg-bot: #d8dbe2;
-  --stage-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 246, 248, 0.93) 100%);
-  --sidebar-bg: linear-gradient(180deg, #333842 0%, #22262e 50%, #15181e 100%);
+  --stage-bg-top: #ffffff;
+  --stage-bg-mid: #f8fafc;
+  --stage-bg-bot: #f1f5f9;
+  --stage-surface: #ffffff;
+  --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   --sidebar-text: #f8fafc;
   --sidebar-muted: #94a3b8;
   --accent-primary: #334155;
   --accent-soft: #f1f5f9;
-  --border-outer: rgba(100, 116, 139, 0.32);
+  --border-outer: rgba(100, 116, 139, 0.2);
   --border-highlight: rgba(255, 255, 255, 0.95);
 }
 
@@ -61,12 +61,18 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", Roboto, sans-serif;
-  background: radial-gradient(130% 90% at 50% 0%, var(--stage-bg-top) 0%, var(--stage-bg-mid) 55%, var(--stage-bg-bot) 100%);
+  font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", system-ui, sans-serif;
+  background: radial-gradient(120% 80% at 50% 0%, var(--stage-bg-top) 0%, var(--stage-bg-mid) 50%, var(--stage-bg-bot) 100%);
   background-attachment: fixed;
-  color: #1e293b;
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+  letter-spacing: -0.011em;
 }
 
 h1,
@@ -74,7 +80,8 @@ h2,
 h3,
 h4 {
   text-wrap: balance;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 .pretty-text {
@@ -109,197 +116,196 @@ h4 {
   z-index: 1;
 }
 
-/* ─── LUXURY GLASS LIQUID GRAY-WHITE DESIGN SYSTEM ─────────────────────── */
+/* ─── LUXURY EXECUTIVE CLEAN DESIGN SYSTEM ────────────────────────── */
 .glass-liquid {
   position: relative;
-  background: rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 16px;
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 0 rgba(226, 232, 240, 0.5),
-    0 8px 30px -4px rgba(15, 23, 42, 0.05),
-    0 2px 8px -1px rgba(15, 23, 42, 0.03);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    0 1px 2px 0 rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-liquid:hover {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(203, 213, 225, 1);
   box-shadow:
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 1),
-    0 14px 38px -6px rgba(15, 23, 42, 0.09),
-    0 4px 12px -2px rgba(15, 23, 42, 0.05);
+    0 2px 4px 0 rgba(15, 23, 42, 0.03),
+    0 12px 32px -6px rgba(15, 23, 42, 0.06);
 }
 
 .glass-liquid-dark {
   position: relative;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.96) 100%);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5),
-    0 16px 36px -8px rgba(15, 23, 42, 0.32),
-    0 4px 12px rgba(15, 23, 42, 0.18);
+    0 16px 36px -8px rgba(15, 23, 42, 0.28),
+    0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
-    0 2px 8px rgba(0, 0, 0, 0.03);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   border-radius: 9999px;
 }
 
 .glass-subcard {
-  background: rgba(248, 250, 252, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.02);
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: all 0.18s ease;
 }
 
 .glass-subcard:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border-color: rgba(203, 213, 225, 1);
-  box-shadow: inset 0 1px 0 #ffffff, 0 4px 14px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
-/* ─── WINDOWS VISTA AERO LUXURY 2.5D GRAY DESIGN SYSTEM ───────────────────── */
+/* ─── CEO CARD: LUMINOUS & REFINED ─────────────────────────────────── */
 .ceo-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 16px;
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.98),
-    inset 0 -1px 0 0 rgba(226, 232, 240, 0.5),
-    0 8px 30px -4px rgba(15, 23, 42, 0.05),
-    0 2px 8px -1px rgba(15, 23, 42, 0.03);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    0 1px 3px 0 rgba(15, 23, 42, 0.02),
+    0 6px 20px -4px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ceo-card:hover {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(255, 255, 255, 1);
+  border-color: rgba(203, 213, 225, 0.95);
   box-shadow:
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 1),
-    0 14px 38px -6px rgba(15, 23, 42, 0.08),
-    0 4px 12px -2px rgba(15, 23, 42, 0.04);
+    0 2px 6px 0 rgba(15, 23, 42, 0.03),
+    0 10px 28px -6px rgba(15, 23, 42, 0.06);
 }
 
-/* Vista Smoked Titanium / Midnight Obsidian Glass Header Card (Matching AI Briefing) */
+/* ─── EXECUTIVE HERO BANNER: AIRY, LUMINOUS & ELEGANT ─────────────── */
 .vista-hero {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.94) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  color: #0f172a;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px 0 rgba(15, 23, 42, 0.02),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vista-hero-dark {
   position: relative;
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.5),
-    0 16px 36px -8px rgba(15, 23, 42, 0.32),
-    0 4px 12px rgba(15, 23, 42, 0.18);
+    0 16px 36px -8px rgba(15, 23, 42, 0.28),
+    0 4px 12px rgba(15, 23, 42, 0.14);
 }
 
-/* Vista Aero Smoked Glass Sidebar */
+/* ─── CEO SIDEBAR ─────────────────────────────────────────────────── */
 .ceo-sidebar {
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.08),
-    6px 0 24px -4px rgba(15, 23, 42, 0.26);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 0 24px -4px rgba(15, 23, 42, 0.35);
 }
 
-/* Vista Aero Topbar */
+/* ─── VISTA TOPBAR ────────────────────────────────────────────────── */
 .vista-topbar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 240, 246, 0.88) 100%);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-bottom: 1px solid rgba(100, 116, 139, 0.32);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 4px 14px -4px rgba(15, 23, 42, 0.07);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.02);
 }
 
-/* 2.5D Metallic Buttons */
+/* ─── MODERN EXECUTIVE BUTTONS ────────────────────────────────────── */
+.btn-executive-primary,
 .btn-25d-primary {
-  background: linear-gradient(180deg, #4b5565 0%, #2d3542 49%, #1f2530 51%, #151922 100%);
-  color: #f8fafc;
+  background: #0f172a;
+  color: #ffffff;
   border: 1px solid #0f172a;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
-    0 2px 4px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.1);
   transition: all 0.15s ease;
 }
 
+.btn-executive-primary:hover,
 .btn-25d-primary:hover {
-  background: linear-gradient(180deg, #566173 0%, #36404f 49%, #252c38 51%, #1b202b 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 4px 8px rgba(15, 23, 42, 0.24);
+  background: #1e293b;
+  border-color: #1e293b;
+  box-shadow: 0 2px 6px 0 rgba(15, 23, 42, 0.14);
 }
 
+.btn-executive-primary:active,
 .btn-25d-primary:active {
   transform: translateY(1px);
 }
 
+.btn-executive-secondary,
 .btn-25d-secondary {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f4f8 50%, #e2e7f0 100%);
-  color: #1e293b;
-  border: 1px solid rgba(100, 116, 139, 0.42);
-  box-shadow:
-    inset 0 1px 0 #ffffff,
-    0 1px 3px rgba(15, 23, 42, 0.07);
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   transition: all 0.15s ease;
 }
 
+.btn-executive-secondary:hover,
 .btn-25d-secondary:hover {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #eaeff5 100%);
-  border-color: rgba(71, 85, 105, 0.6);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
 }
 
+.btn-executive-secondary:active,
 .btn-25d-secondary:active {
   transform: translateY(1px);
 }
 
-/* 2.5D Recessed Input & Sub-containers inside cards */
+/* Inputs & Form Elements */
 .ceo-card input:not([type="checkbox"]):not([type="range"]),
 .ceo-card select,
 .ceo-card textarea {
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 35%, #ffffff 100%);
-  box-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.85);
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Dark 2.5D Select inside Sidebar */
-.ceo-sidebar select {
-  background: linear-gradient(180deg, #2b3240 0%, #1b202b 100%);
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+.ceo-card input:not([type="checkbox"]):not([type="range"]):focus,
+.ceo-card select:focus,
+.ceo-card textarea:focus {
+  border-color: #0284c7;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
 }
 
 /* Subtle Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -307,12 +313,12 @@ h4 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.38);
+  background: rgba(148, 163, 184, 0.4);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.6);
+  background: rgba(100, 116, 139, 0.6);
 }
 
 .tabular-nums {

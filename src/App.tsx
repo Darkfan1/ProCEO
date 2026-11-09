@@ -823,8 +823,8 @@ export default function App() {
         </div>
       )}
 
-      {/* KHU VỰC NỘI DUNG CHÍNH EXECUTIVE (LUXURY GRAY-WHITE LIQUID CANVAS) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-hidden bg-gradient-to-br from-slate-100/90 via-slate-50 to-slate-100/80">
+      {/* KHU VỰC NỘI DUNG CHÍNH EXECUTIVE (AIRY MODERN EXECUTIVE CANVAS) */}
+      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-hidden bg-[#F8FAFC]">
         {/* TOPBAR */}
         <ExecutiveTopbar
           activeTab={activeTab}
@@ -834,7 +834,8 @@ export default function App() {
         />
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto w-full px-3.5 sm:px-6 py-4">
+        <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-5">
+          <div className="max-w-[1600px] mx-auto w-full space-y-4">
           {(activeTab === 'dashboard' || activeTab === 'cockpit') && (
             <ExecutiveDashboard
               schedules={schedules}
@@ -1167,6 +1168,7 @@ export default function App() {
               onNavigateTab={handleNavigateTab}
             />
           )}
+          </div>
         </main>
       </div>
     </div>

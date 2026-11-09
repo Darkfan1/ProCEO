@@ -89,7 +89,7 @@ export const ExecutiveTopbar: React.FC<ExecutiveTopbarProps> = ({
   };
 
   return (
-    <header className="h-16 px-4 sm:px-6 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl shrink-0 z-20 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]">
+    <header className="h-16 px-4 sm:px-6 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shrink-0 z-20 shadow-[0_1px_3px_0_rgba(15,23,42,0.02)]">
       {/* CỘT TRÁI: MOBILE TOGGLE & TIÊU ĐỀ PHÂN HỆ */}
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -101,15 +101,15 @@ export const ExecutiveTopbar: React.FC<ExecutiveTopbarProps> = ({
 
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="font-extrabold text-sm sm:text-base text-slate-900 tracking-tight truncate">
+            <h1 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate">
               {currentTabInfo.title}
             </h1>
-            <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 text-slate-700">
+            <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 border border-slate-200/80 text-slate-700">
               {operatingMode === 'PERSONAL' ? 'Cá nhân' : 'Doanh nghiệp'}
             </span>
           </div>
           {currentTabInfo.subtitle ? (
-            <p className="hidden md:block text-[11px] text-slate-500 truncate max-w-xl">
+            <p className="hidden md:block text-xs text-slate-500 truncate max-w-xl font-normal">
               {currentTabInfo.subtitle}
             </p>
           ) : null}
@@ -118,22 +118,22 @@ export const ExecutiveTopbar: React.FC<ExecutiveTopbarProps> = ({
 
       {/* CỘT PHẢI: NGÀY & HỒ SƠ LÃNH ĐẠO */}
       <div className="flex items-center gap-3 shrink-0">
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/80 border border-slate-200/80 text-[11px] font-mono text-slate-600 font-semibold">
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] font-mono text-slate-600 font-semibold shadow-2xs">
           <Calendar className="w-3.5 h-3.5 text-slate-500" />
           <span>{todayYmd}</span>
         </div>
 
         {/* Avatar Profile CEO */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+        <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white border border-white/20 shadow-xs"
             style={{
-              background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
             }}
           >
             V
           </div>
-          <span className="hidden xl:inline text-xs font-bold text-slate-800">
+          <span className="hidden xl:inline text-xs font-semibold text-slate-800">
             {userName}
           </span>
         </div>

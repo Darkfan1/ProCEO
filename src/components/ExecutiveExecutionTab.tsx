@@ -1028,15 +1028,20 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
       )}
 
       {viewScope === 'ALL' && (
-      <div className="vista-hero p-3 sm:p-4 rounded-2xl shadow-sm space-y-3">
+      <div className="ceo-card p-4 sm:p-5 space-y-4 shadow-xs">
         <div className="flex items-center justify-between gap-3 no-print">
-          <div className="flex items-center gap-2 text-white">
-            <span className="p-1 rounded-lg bg-white/10 border border-white/15">
-              <Target className="w-4 h-4 text-emerald-400" />
-            </span>
-            <span className="text-xs font-bold tracking-tight text-slate-200 uppercase">
-              Chu Trình Thực Thi Khép Kín 4 Giai Đoạn
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+              <Target className="w-4 h-4 text-sky-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-slate-900">
+                Chu Trình Thực Thi Khép Kín 4 Giai Đoạn
+              </h2>
+              <p className="text-[11px] text-slate-500 font-normal">
+                Quy trình điều hành chuẩn hóa: SMART ➔ PDCA ➔ Họp 3-6-9 ➔ Đóng gói SOP
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -1047,89 +1052,97 @@ export const ExecutiveExecutionTab: React.FC<ExecutiveExecutionTabProps> = ({
                 else if (activeStage === 'MEETINGS') onOpenTheoryDrawer('MEETING_369');
                 else onOpenTheoryDrawer('PDCA');
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
             >
-              <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+              <BookOpen className="w-3.5 h-3.5 text-amber-500" />
               <span>Sổ tay lý thuyết</span>
             </button>
           </div>
         </div>
 
         {/* Bốn thẻ Stepper liên hoàn */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-0.5">
           {/* Bước 1: SMART */}
           <button
             onClick={() => setActiveStage('SMART')}
-            className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
               activeStage === 'SMART'
-                ? 'bg-white text-slate-900 border-white shadow-md'
-                : 'bg-white/10 text-white border-white/10 hover:bg-white/15'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/70 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase opacity-80">
+            <div className={`flex items-center justify-between text-[11px] font-semibold uppercase ${activeStage === 'SMART' ? 'text-slate-300' : 'text-slate-500'}`}>
               <span>1. Xác định mục tiêu</span>
               <Target className="w-3.5 h-3.5" />
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
+            <div className="mt-2 font-bold text-sm sm:text-base flex items-baseline gap-1.5">
               <span>SMART</span>
-              <span className="text-xs font-semibold opacity-75">({activeSmartCount} việc mở)</span>
+              <span className={`text-xs font-medium ${activeStage === 'SMART' ? 'text-slate-300' : 'text-slate-500'}`}>
+                ({activeSmartCount} việc mở)
+              </span>
             </div>
           </button>
 
           {/* Bước 2: PDCA */}
           <button
             onClick={() => setActiveStage('PDCA')}
-            className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
               activeStage === 'PDCA'
-                ? 'bg-white text-slate-900 border-white shadow-md'
-                : 'bg-white/10 text-white border-white/10 hover:bg-white/15'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/70 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase opacity-80">
-              <span>2. Tổ chức thực hiện</span>
+            <div className={`flex items-center justify-between text-[11px] font-semibold uppercase ${activeStage === 'PDCA' ? 'text-slate-300' : 'text-slate-500'}`}>
+              <span>2. Cải tiến gốc rễ</span>
               <RefreshCw className="w-3.5 h-3.5" />
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
+            <div className="mt-2 font-bold text-sm sm:text-base flex items-baseline gap-1.5">
               <span>PDCA</span>
-              <span className="text-xs font-semibold opacity-75">({activePdcaCount} chu trình)</span>
+              <span className={`text-xs font-medium ${activeStage === 'PDCA' ? 'text-slate-300' : 'text-slate-500'}`}>
+                ({activePdcaCount} chu trình)
+              </span>
             </div>
           </button>
 
           {/* Bước 3: Họp 3-6-9 */}
           <button
             onClick={() => setActiveStage('MEETINGS')}
-            className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
               activeStage === 'MEETINGS'
-                ? 'bg-white text-slate-900 border-white shadow-md'
-                : 'bg-white/10 text-white border-white/10 hover:bg-white/15'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/70 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase opacity-80">
+            <div className={`flex items-center justify-between text-[11px] font-semibold uppercase ${activeStage === 'MEETINGS' ? 'text-slate-300' : 'text-slate-500'}`}>
               <span>3. Giám sát & Cam kết</span>
               <Users className="w-3.5 h-3.5" />
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
+            <div className="mt-2 font-bold text-sm sm:text-base flex items-baseline gap-1.5">
               <span>Họp 3-6-9</span>
-              <span className="text-xs font-semibold opacity-75">({activeMeetingsCount} cuộc họp)</span>
+              <span className={`text-xs font-medium ${activeStage === 'MEETINGS' ? 'text-slate-300' : 'text-slate-500'}`}>
+                ({activeMeetingsCount} cuộc họp)
+              </span>
             </div>
           </button>
 
           {/* Bước 4: SOP */}
           <button
             onClick={() => setActiveStage('SOP')}
-            className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3.5 rounded-xl text-left border transition-all cursor-pointer relative overflow-hidden ${
               activeStage === 'SOP'
-                ? 'bg-white text-slate-900 border-white shadow-md'
-                : 'bg-white/10 text-white border-white/10 hover:bg-white/15'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-slate-50/70 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase opacity-80">
-              <span>4. Đóng gói thành quả</span>
+            <div className={`flex items-center justify-between text-[11px] font-semibold uppercase ${activeStage === 'SOP' ? 'text-slate-300' : 'text-slate-500'}`}>
+              <span>4. Đóng gói chuẩn hóa</span>
               <FileCheck className="w-3.5 h-3.5" />
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
+            <div className="mt-2 font-bold text-sm sm:text-base flex items-baseline gap-1.5">
               <span>Chuẩn Hóa SOP</span>
-              <span className="text-xs font-semibold opacity-75">({standardizedSopCount} quy trình)</span>
+              <span className={`text-xs font-medium ${activeStage === 'SOP' ? 'text-slate-300' : 'text-slate-500'}`}>
+                ({standardizedSopCount} quy trình)
+              </span>
             </div>
           </button>
         </div>

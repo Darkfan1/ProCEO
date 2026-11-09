@@ -178,46 +178,46 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
   return (
     <aside
       className={`relative flex flex-col shrink-0 select-none transition-all duration-200 z-30 ${
-        collapsed ? 'w-[72px]' : 'w-[268px]'
+        collapsed ? 'w-[72px]' : 'w-[264px]'
       }`}
       style={{
-        background: 'linear-gradient(180deg, #1E293B 0%, #0F172A 100%)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.12)',
-        boxShadow: '4px 0 28px -4px rgba(15, 23, 42, 0.45), inset -1px 0 0 0 rgba(255, 255, 255, 0.08)',
+        background: 'linear-gradient(180deg, #0b1120 0%, #080c16 100%)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '4px 0 24px -4px rgba(0, 0, 0, 0.35)',
       }}
     >
       {/* 1. BRAND HEADER */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-white/10 shrink-0">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-white/[0.08] shrink-0">
         {!collapsed ? (
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm bg-white/10 border border-white/15 text-white">
-              <Shield className="w-4 h-4 font-black text-slate-100" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs bg-sky-500/15 border border-sky-400/25 text-white">
+              <Shield className="w-4 h-4 text-sky-300 font-bold" />
             </div>
             <div className="leading-tight truncate">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base tracking-tight text-white font-sans">
+                <span className="font-bold text-[15px] tracking-tight text-white">
                   ProCEO
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   2.0
                 </span>
               </div>
-              <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">
+              <p className="text-[10px] font-medium text-slate-400 tracking-wide uppercase">
                 Hệ Thống Điều Hành C-Level
               </p>
             </div>
           </div>
         ) : (
           <div className="w-full flex justify-center">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm bg-white/10 border border-white/15 text-white">
-              <Shield className="w-4 h-4 text-slate-100" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-xs bg-sky-500/15 border border-sky-400/25 text-white">
+              <Shield className="w-4 h-4 text-sky-300" />
             </div>
           </div>
         )}
 
         <button
           onClick={onToggleCollapse}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
           title={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -229,15 +229,15 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
         <div className="px-3 pt-3 pb-1">
           <div
             onClick={onToggleMode}
-            className="p-2 rounded-xl border border-white/10 bg-white/5 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors shadow-2xs"
+            className="p-2 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-between cursor-pointer hover:bg-white/[0.07] transition-colors shadow-2xs"
           >
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-bold text-white">
+              <span className="text-[11px] font-semibold text-slate-200">
                 {operatingMode === 'PERSONAL' ? 'Chế độ Cá nhân' : 'Chế độ Doanh nghiệp'}
               </span>
             </div>
-            <span className="text-[9.5px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-mono">
+            <span className="text-[9.5px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 font-mono">
               Cấp CEO
             </span>
           </div>
@@ -245,16 +245,16 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
       )}
 
       {/* 3. NAVIGATION ITEMS GROUPED */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 text-xs scrollbar-thin scrollbar-thumb-white/10">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-3.5 text-xs scrollbar-thin scrollbar-thumb-white/10">
         {NAV_GROUPS.map((group, gIdx) => (
           <div
             key={gIdx}
             className={`space-y-1 ${
-              gIdx === NAV_GROUPS.length - 1 ? 'pt-2.5 border-t border-white/10' : ''
+              gIdx === NAV_GROUPS.length - 1 ? 'pt-2.5 border-t border-white/[0.08]' : ''
             }`}
           >
             {!collapsed && (
-              <div className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {group.groupTitle}
               </div>
             )}
@@ -274,28 +274,22 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
                     onClick={() => onSelectTab(item.id)}
                     className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left transition-all cursor-pointer group ${
                       isActive
-                        ? 'text-white font-bold shadow-xs'
-                        : 'text-slate-300 hover:text-white hover:bg-white/8 font-medium'
+                        ? 'text-white font-semibold bg-sky-500/10 border-l-2 border-sky-400 shadow-xs'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.06] font-medium'
                     }`}
-                    style={
-                      isActive
-                        ? {
-                            background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                            borderLeft: '3px solid #38BDF8',
-                          }
-                        : undefined
-                    }
                     title={collapsed ? item.label : undefined}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${
-                          isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-200'
+                          isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'
                         }`}
                       />
                       {!collapsed && (
                         <div className="truncate">
-                          <span className="block truncate text-xs text-white">{item.label}</span>
+                          <span className={`block truncate text-xs ${isActive ? 'text-white font-semibold' : 'text-slate-300'}`}>
+                            {item.label}
+                          </span>
                           {item.sublabel && (
                             <span className="block text-[9.5px] text-slate-400 font-normal truncate">
                               {item.sublabel}
@@ -310,7 +304,7 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
                         className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold shrink-0 ${
                           item.badgeTone === 'rose'
                             ? 'bg-rose-500 text-white'
-                            : 'bg-white/15 text-slate-200 border border-white/15'
+                            : 'bg-white/10 text-slate-300 border border-white/10'
                         }`}
                       >
                         {item.badgeCount}
@@ -325,16 +319,16 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
       </nav>
 
       {/* 4. FOOTER UTILITIES (Sổ tay tri thức & Cài đặt hệ thống) */}
-      <div className="p-2.5 border-t border-white/10 shrink-0">
+      <div className="p-2.5 border-t border-white/[0.08] shrink-0">
         <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-2 gap-1.5'}`}>
           <button
             type="button"
             onClick={() => onSelectTab('mindset-hub')}
             title="Sổ Tay Tri Thức Quản Trị"
-            className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${
+            className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold transition-all cursor-pointer border ${
               activeTab === 'mindset-hub'
-                ? 'bg-white/15 text-white border-sky-400/50 shadow-xs'
-                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                ? 'bg-white/10 text-white border-sky-400/40 shadow-xs'
+                : 'bg-white/[0.03] text-slate-400 border-white/[0.08] hover:bg-white/[0.07] hover:text-white'
             }`}
           >
             <BookOpen
@@ -349,10 +343,10 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
             type="button"
             onClick={() => onSelectTab('settings')}
             title="Cài Đặt Hệ Thống"
-            className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${
+            className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold transition-all cursor-pointer border ${
               activeTab === 'settings'
-                ? 'bg-white/15 text-white border-sky-400/50 shadow-xs'
-                : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                ? 'bg-white/10 text-white border-sky-400/40 shadow-xs'
+                : 'bg-white/[0.03] text-slate-400 border-white/[0.08] hover:bg-white/[0.07] hover:text-white'
             }`}
           >
             <Settings

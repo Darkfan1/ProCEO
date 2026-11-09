@@ -475,28 +475,33 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ─── 1. THẺ CHỈ SỐ KPI THỰC THI (Không lặp lại tiêu đề Header bar) ──── */}
-      <div className="vista-hero p-3 sm:p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
-          <div className="flex items-center gap-2 text-white">
-            <span className="p-1 rounded-lg bg-white/10 border border-white/15">
-              <CheckSquare className="w-4 h-4 text-emerald-400" />
-            </span>
-            <span className="text-xs font-bold tracking-tight text-slate-200 uppercase">
-              Tổng Quan Tiến Độ Thực Thi
-            </span>
+      {/* ─── 1. THẺ CHỈ SỐ KPI THỰC THI (LUXURY EXECUTIVE LIGHT STAGE) ──── */}
+      <div className="ceo-card p-4 sm:p-5 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 no-print">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+              <CheckSquare className="w-4 h-4 text-sky-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-slate-900">
+                Tổng Quan Tiến Độ Thực Thi
+              </h2>
+              <p className="text-[11px] text-slate-500 font-normal">
+                Theo dõi nhịp độ điều hành & tiến độ công việc C-Level real-time
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             {/* View Mode Toggle: Kanban vs Table */}
-            <div className="flex items-center bg-white/10 p-0.5 rounded-xl border border-white/15">
+            <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
               <button
                 type="button"
                 onClick={() => setViewMode('KANBAN')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'KANBAN'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-300 hover:text-white'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Kanban className="w-3.5 h-3.5" />
@@ -505,10 +510,10 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('TABLE')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'TABLE'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-300 hover:text-white'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <List className="w-3.5 h-3.5" />
@@ -519,16 +524,16 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
             <button
               type="button"
               onClick={handleOpenNewScheduleModal}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
             >
-              <Calendar className="w-3.5 h-3.5 text-blue-300" />
+              <Calendar className="w-3.5 h-3.5 text-sky-600" />
               <span>+ Lịch Điều Hành</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenNewTaskModal}
-              className="px-3 py-1.5 rounded-xl btn-25d-primary font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-transform active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Giao Việc Mới</span>
@@ -537,73 +542,92 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
         </div>
 
         {/* 4 Thẻ KPI Thực Thi Realtime */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-0.5">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Lịch trình hôm nay</span>
-              <Calendar className="w-3.5 h-3.5 text-blue-300" />
+              <div className="w-6 h-6 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                <Calendar className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{todayDoneSchedulesCount} / {todaySchedules.length}</span>
-              <span className="text-[11px] font-medium opacity-75">mục đã xong</span>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">
+                {todayDoneSchedulesCount} <span className="text-slate-400 font-normal text-xs">/ {todaySchedules.length}</span>
+              </span>
+              <span className="text-[11px] font-medium text-slate-500">mục đã xong</span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Tác vụ đang chạy</span>
-              <Briefcase className="w-3.5 h-3.5 text-emerald-300" />
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <Briefcase className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.active}</span>
-              <span className="text-[11px] font-medium opacity-75">việc mở</span>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.active}</span>
+              <span className="text-[11px] font-medium text-slate-500">việc mở</span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Tác vụ quá hạn</span>
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-300" />
+              <div className={`w-6 h-6 rounded-lg border flex items-center justify-center ${stats.overdue > 0 ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span className={stats.overdue > 0 ? 'text-rose-300' : 'text-emerald-300'}>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className={`font-mono tracking-tight ${stats.overdue > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
                 {stats.overdue}
               </span>
-              <span className="text-[11px] font-medium opacity-75">cần xử lý ngay</span>
+              <span className="text-[11px] font-medium text-slate-500">
+                {stats.overdue > 0 ? 'cần xử lý ngay' : 'đúng hạn'}
+              </span>
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-white">
-            <div className="flex items-center justify-between text-[11px] font-bold opacity-80 uppercase">
+          <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-2xs transition-all flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
               <span>Đôn đốc kỷ luật</span>
-              <Flame className="w-3.5 h-3.5 text-amber-300" />
+              <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <Flame className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-1 font-extrabold text-sm sm:text-base flex items-baseline gap-1.5">
-              <span>{stats.totalFollowUps}</span>
-              <span className="text-[11px] font-medium opacity-75">lượt CEO nhắc</span>
+            <div className="mt-2.5 font-bold text-base sm:text-lg flex items-baseline gap-2">
+              <span className="font-mono text-slate-900 tracking-tight">{stats.totalFollowUps}</span>
+              <span className="text-[11px] font-medium text-slate-500">lượt CEO nhắc</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ─── 2. KHỐI LỊCH TRÌNH ĐIỀU HÀNH HÔM NAY (CEO DAILY AGENDA) ─────────── */}
-      <div className="ceo-card p-3 sm:p-4 space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-slate-700" />
-            <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-2">
-              <span>Lịch Trình & Cuộc Hẹn Điều Hành Hôm Nay</span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10.5px] font-mono font-bold">
+      <div className="ceo-card p-4 sm:p-5 space-y-3.5 shadow-xs">
+        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+              <Clock className="w-4 h-4 text-sky-600" />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                Lịch Trình & Cuộc Hẹn Điều Hành Hôm Nay
+              </h3>
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-mono font-semibold border border-slate-200/80">
                 {todayYmd}
               </span>
-            </h3>
+              <span className="px-1.5 py-0.2 rounded-full bg-sky-50 text-sky-700 text-[10px] font-semibold border border-sky-200/70">
+                {todaySchedules.length} lịch
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleOpenNewScheduleModal}
-              className="text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-1 cursor-pointer transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Thêm lịch</span>
@@ -611,7 +635,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
             <button
               type="button"
               onClick={() => setSchedulesCollapsed((prev) => !prev)}
-              className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer transition-colors"
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
               title={schedulesCollapsed ? 'Mở rộng' : 'Thu gọn'}
             >
               {schedulesCollapsed ? (
@@ -626,18 +650,18 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
         {!schedulesCollapsed && (
           <div>
             {todaySchedules.length === 0 ? (
-              <div className="p-4 text-center rounded-xl bg-slate-50/60 border border-dashed border-slate-200 text-xs text-slate-500 space-y-1">
+              <div className="p-6 text-center rounded-xl bg-slate-50/60 border border-dashed border-slate-200 text-xs text-slate-500 space-y-1.5">
                 <p>Chưa có lịch trình nào được đặt cho ngày hôm nay.</p>
                 <button
                   type="button"
                   onClick={handleOpenNewScheduleModal}
-                  className="text-slate-900 font-bold underline cursor-pointer"
+                  className="text-sky-600 font-semibold hover:underline cursor-pointer"
                 >
                   + Thêm lịch trình / cuộc hẹn mới →
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {todaySchedules.map((item) => {
                   const isDone = item.completedDates?.includes(todayYmd);
                   const cat = CATEGORY_META[item.category] || CATEGORY_META.MEETING_369;
@@ -645,72 +669,73 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className={`p-3 rounded-xl border transition-all group flex items-start justify-between gap-2.5 ${
+                      className={`p-3.5 rounded-xl border transition-all group flex items-start justify-between gap-3 ${
                         isDone
-                          ? 'bg-slate-50/60 border-slate-200/60 opacity-65'
-                          : 'bg-white border-slate-200/90 shadow-2xs hover:border-slate-300'
+                          ? 'bg-slate-50/50 border-slate-200/60 opacity-60'
+                          : 'bg-white border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs'
                       }`}
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <button
                           type="button"
                           onClick={() => onToggleScheduleDone(item)}
-                          className={`mt-0.5 w-4.5 h-4.5 rounded-md flex items-center justify-center border cursor-pointer shrink-0 transition-colors ${
+                          className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center border cursor-pointer shrink-0 transition-colors ${
                             isDone
                               ? 'bg-emerald-600 border-emerald-600 text-white'
-                              : 'border-slate-300 hover:border-slate-600 bg-white'
+                              : 'border-slate-300 hover:border-slate-500 bg-white'
                           }`}
                           title={isDone ? 'Đánh dấu chưa xong' : 'Đánh dấu đã hoàn thành'}
                         >
                           {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
                         </button>
 
-                        <div className="space-y-1 min-w-0 flex-1">
+                        <div className="space-y-1.5 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="px-1.5 py-0.2 rounded font-mono text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                            <span className="px-2 py-0.5 rounded font-mono text-[10.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
                               {item.startTime} - {item.endTime}
                             </span>
                             <span
-                              className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold border ${cat.bg} ${cat.text} ${cat.border}`}
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${cat.bg} ${cat.text} ${cat.border}`}
                             >
                               {cat.label}
                             </span>
                             {item.linkedLsxCode && (
-                              <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              <span className="px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                 LSX: {item.linkedLsxCode}
                               </span>
                             )}
                           </div>
 
                           <div
-                            className={`font-bold text-xs leading-snug ${
+                            className={`font-semibold text-xs sm:text-[13px] leading-snug ${
                               isDone ? 'line-through text-slate-400' : 'text-slate-900'
                             }`}
                           >
                             {item.title}
                           </div>
 
-                          {item.linkedPerson && (
-                            <div className="text-[10.5px] text-slate-500 flex items-center gap-1 font-medium">
-                              <span>👤</span>
-                              <span>{item.linkedPerson}</span>
-                            </div>
-                          )}
-
-                          {item.notes && (
-                            <div className="text-[10px] text-slate-500 italic line-clamp-2">
-                              {item.notes}
-                            </div>
-                          )}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 font-medium">
+                            {item.linkedPerson && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-400">👤</span>
+                                <span>{item.linkedPerson}</span>
+                              </div>
+                            )}
+                            {item.notes && (
+                              <div className="italic text-slate-400 line-clamp-1 max-w-sm">
+                                {item.notes}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Nút Sửa / Xóa lịch trình */}
+                      {/* Nút Sửa / Xóa lịch trình (Rule 2: ẩn mặc định, hover hiện) */}
                       <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={() => handleOpenEditScheduleModal(item)}
-                          className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
                           title="Sửa lịch trình"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -724,7 +749,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                             );
                             if (ok) onDeleteSchedule(item.id);
                           }}
-                          className="p-1 rounded hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer"
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer transition-colors"
                           title="Xóa lịch trình"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -740,17 +765,19 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
       </div>
 
       {/* ─── 3. BẢNG ĐIỀU PHỐI TÁC VỤ THỰC THI DRI ───────────────────────────── */}
-      <div className="ceo-card p-4 space-y-3">
+      <div className="ceo-card p-4 sm:p-5 space-y-4 shadow-xs">
         {/* Thanh công cụ lọc & tìm kiếm */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
-          <div className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-slate-700" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 border-b border-slate-200/80 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 shrink-0">
+              <Briefcase className="w-4 h-4 text-sky-600" />
+            </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm">
+              <h3 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">
                 Danh Sách Tác Vụ Thực Thi Theo DRI
               </h3>
-              <p className="text-[11px] text-slate-500">
-                Mỗi công việc gán một DRI duy nhất chịu trách nhiệm cuối cùng.
+              <p className="text-[11px] text-slate-500 font-normal">
+                Mỗi công việc gán một DRI duy nhất chịu trách nhiệm kết quả cuối cùng.
               </p>
             </div>
           </div>
@@ -761,9 +788,9 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('ACTIVE')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'ACTIVE'
-                    ? 'bg-slate-900 text-white'
+                    ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -772,9 +799,9 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('OVERDUE')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'OVERDUE'
-                    ? 'bg-rose-700 text-white'
+                    ? 'bg-rose-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -783,9 +810,9 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('DONE')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'DONE'
-                    ? 'bg-emerald-700 text-white'
+                    ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -794,9 +821,9 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'ALL'
-                    ? 'bg-slate-900 text-white'
+                    ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -805,10 +832,10 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIncludeSmartGoals((prev) => !prev)}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer border ${
+                className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer border ${
                   includeSmartGoals
-                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80 shadow-2xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
                 title="Bật để xem gộp cả các Mục tiêu định lượng SMART trên cùng bảng Kanban"
               >
@@ -821,7 +848,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold outline-none focus:border-slate-400"
+                className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-700 outline-none focus:border-slate-400"
               >
                 <option value="ALL">Mọi phòng ban</option>
                 {uniqueDepartments.map((dept) => (
@@ -840,7 +867,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm tác vụ, DRI, LSX..."
-                className="w-full pl-8 pr-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium outline-none focus:border-slate-400"
+                className="w-full pl-8 pr-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium outline-none focus:border-slate-400 focus:bg-white transition-all"
               />
             </div>
           </div>
@@ -942,23 +969,23 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
         {/* ─── CHẾ ĐỘ 2: BẢNG DANH SÁCH (CLEAN TABLE UI) ────────────────────── */}
         {viewMode === 'TABLE' && (
           <div className="overflow-x-auto rounded-xl border border-slate-200/90 shadow-2xs">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-600 uppercase font-extrabold text-[10.5px] tracking-wider">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
                 <tr>
-                  <th className="py-2.5 px-3">Tác vụ & Lệnh sản xuất</th>
-                  <th className="py-2.5 px-3">DRI Phụ trách</th>
-                  <th className="py-2.5 px-3">Ưu tiên</th>
-                  <th className="py-2.5 px-3">Hạn chót</th>
-                  <th className="py-2.5 px-3 w-28">Tiến độ</th>
-                  <th className="py-2.5 px-3">Trạng thái</th>
-                  <th className="py-2.5 px-3">Đôn đốc CEO</th>
-                  <th className="py-2.5 px-3 text-right">Thao tác</th>
+                  <th className="py-3 px-3.5 min-w-[280px]">Tác vụ & Lệnh sản xuất</th>
+                  <th className="py-3 px-3 w-40 whitespace-nowrap">DRI Phụ trách</th>
+                  <th className="py-3 px-3 w-28 whitespace-nowrap">Ưu tiên</th>
+                  <th className="py-3 px-3 w-32 whitespace-nowrap">Hạn chót</th>
+                  <th className="py-3 px-3 w-28 whitespace-nowrap">Tiến độ</th>
+                  <th className="py-3 px-3 w-28 whitespace-nowrap">Trạng thái</th>
+                  <th className="py-3 px-3 w-28 whitespace-nowrap">Đôn đốc CEO</th>
+                  <th className="py-3 px-3 w-36 text-right whitespace-nowrap">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200/70 bg-white">
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {filteredTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-500 text-xs">
+                    <td colSpan={8} className="py-10 text-center text-slate-500 text-xs">
                       Không tìm thấy tác vụ nào phù hợp với bộ lọc.
                     </td>
                   </tr>
@@ -970,14 +997,14 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                     return (
                       <tr
                         key={task.id}
-                        className="hover:bg-slate-50/80 transition-colors group"
+                        className="hover:bg-slate-50/70 transition-colors group"
                       >
                         {/* Cột 1: Tên tác vụ & LSX */}
-                        <td className="py-3 px-3">
-                          <div className="space-y-1">
+                        <td className="py-3 px-3.5">
+                          <div className="space-y-1 pr-2">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span
-                                className={`font-extrabold text-sm ${
+                                className={`font-semibold text-xs sm:text-[13px] leading-snug ${
                                   task.status === 'DONE'
                                     ? 'line-through text-slate-400'
                                     : 'text-slate-900'
@@ -986,15 +1013,15 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                                 {task.title}
                               </span>
                               {task.linkedLsxCode && (
-                                <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono text-[9.5px] font-bold">
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-mono text-[10px] font-bold shrink-0">
                                   LSX: {task.linkedLsxCode}
                                 </span>
                               )}
                             </div>
                             {task.smart?.measurable && (
-                              <div className="text-[11px] text-slate-500 line-clamp-1">
-                                <span className="font-semibold text-slate-700">Mục tiêu:</span>{' '}
-                                {task.smart.measurable}
+                              <div className="text-[11px] text-slate-500 line-clamp-1 flex items-center gap-1">
+                                <span className="font-semibold text-slate-600">Mục tiêu:</span>{' '}
+                                <span className="truncate">{task.smart.measurable}</span>
                               </div>
                             )}
                           </div>
@@ -1002,17 +1029,25 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
 
                         {/* Cột 2: DRI Phụ trách */}
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="font-semibold text-slate-800 flex items-center gap-1">
-                            <span>👤</span>
-                            <span>{task.assigneeName}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10.5px] font-bold text-slate-700 shrink-0">
+                              {task.assigneeName ? task.assigneeName.charAt(0) : 'U'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-800 text-xs truncate">
+                                {task.assigneeName}
+                              </div>
+                              <div className="text-[10.5px] text-slate-400 truncate">
+                                {task.department}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[10px] text-slate-500">{task.department}</div>
                         </td>
 
                         {/* Cột 3: Ưu tiên */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${prio.badge}`}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border ${prio.badge}`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${prio.dot}`} />
                             <span>{prio.label}</span>
@@ -1022,34 +1057,36 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                         {/* Cột 4: Hạn chót */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           <span
-                            className={`inline-flex px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                            className={`inline-flex px-2 py-0.5 rounded-md font-semibold text-[10.5px] ${
                               task.status === 'DONE'
-                                ? 'bg-emerald-50 text-emerald-700'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
                                 : dueBadge.tone === 'overdue'
-                                ? 'bg-rose-50 text-rose-700'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200/70'
                                 : dueBadge.tone === 'today'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-slate-100 text-slate-700'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200/70'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200/70'
                             }`}
                           >
                             {task.status === 'DONE' ? 'Hoàn tất' : dueBadge.text}
                           </span>
-                          <div className="text-[10px] text-slate-400 mt-0.5">{task.dueDate}</div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            {task.dueDate}
+                          </div>
                         </td>
 
                         {/* Cột 5: Tiến độ */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px] font-bold">
+                            <div className="flex items-center justify-between text-[11px] font-mono font-semibold text-slate-700">
                               <span>{task.progress}%</span>
                             </div>
-                            <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
                               <div
                                 className={`h-full rounded-full transition-all ${
                                   task.progress >= 100
                                     ? 'bg-emerald-500'
                                     : task.progress >= 50
-                                    ? 'bg-indigo-500'
+                                    ? 'bg-sky-500'
                                     : 'bg-amber-500'
                                 }`}
                                 style={{ width: `${Math.min(100, task.progress)}%` }}
@@ -1065,7 +1102,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                             onChange={(e) =>
                               onUpdateTaskStatus(task, e.target.value as SmartTask['status'])
                             }
-                            className="px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-bold cursor-pointer outline-none focus:border-slate-400"
+                            className="px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-800 cursor-pointer outline-none focus:border-slate-400"
                           >
                             <option value="TODO">Cần làm</option>
                             <option value="IN_PROGRESS">Đang làm</option>
@@ -1085,7 +1122,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                                 'success'
                               );
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-extrabold hover:bg-amber-100 cursor-pointer shadow-2xs transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50/80 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-[11px] font-semibold cursor-pointer shadow-2xs transition-colors"
                           >
                             <Flame className="w-3 h-3 text-amber-600" />
                             <span>Đôn đốc ({task.followUpCount || 0})</span>
@@ -1105,11 +1142,11 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                                   smartTask: task,
                                 })
                               }
-                              className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                              title="Chuyển hóa sự cố/tác vụ này thành Chu trình Cải tiến gốc rễ PDCA & Chuẩn hóa SOP"
+                              className="px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10.5px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Chuyển hóa sự cố/tác vụ này thành Chu trình Cải tiến PDCA"
                             >
                               <RefreshCw className="w-3 h-3" />
-                              <span>Đưa vào PDCA</span>
+                              <span>PDCA</span>
                             </button>
                             <button
                               type="button"
@@ -1120,16 +1157,16 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                                   smartTask: task,
                                 })
                               }
-                              className="px-2 py-1 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-0.5 rounded-md bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 text-[10.5px] font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
                               title="Đưa tác vụ/sự cố này vào Họp Giao Ban 3-6-9"
                             >
                               <Users className="w-3 h-3" />
-                              <span>Họp 3-6-9</span>
+                              <span>Họp</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => handleOpenEditTaskModal(task)}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 cursor-pointer"
+                              className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
                               title="Chỉnh sửa tác vụ"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -1143,7 +1180,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                                 );
                                 if (ok) onDeleteTask(task.id);
                               }}
-                              className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer"
+                              className="p-1 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer transition-colors"
                               title="Xóa tác vụ"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1162,41 +1199,45 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
 
       {/* ─── 4. KHỐI ACTION ITEMS SAU HỌP 3-6-9 CẦN ĐÔN ĐỐC ────────────────── */}
       {pendingMeetingActions.length > 0 && (
-        <div className="ceo-card p-3 sm:p-4 space-y-2.5">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-2">
-                <span>Nghị Quyết & Hành Động Cần Đôn Đốc Sau Họp 3-6-9</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
+        <div className="ceo-card p-4 sm:p-5 space-y-3.5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <Users className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">
+                  Nghị Quyết & Hành Động Cần Đôn Đốc Sau Họp 3-6-9
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10.5px] font-semibold border border-indigo-200/80">
                   {pendingMeetingActions.length} việc
                 </span>
-              </h3>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => onNavigateTab('meetings')}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer transition-colors"
             >
               <span>Xem cuộc họp</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pendingMeetingActions.slice(0, 4).map(({ meetingId, meetingTitle, actionItem }) => (
               <div
                 key={actionItem.id}
-                className="p-2.5 rounded-xl border border-slate-200/90 bg-white/70 flex items-center justify-between gap-2 shadow-2xs"
+                className="p-3.5 rounded-xl border border-slate-200/80 bg-white/80 hover:border-slate-300 hover:shadow-2xs transition-all flex items-center justify-between gap-3 shadow-2xs"
               >
-                <div className="min-w-0 space-y-0.5">
+                <div className="min-w-0 space-y-1">
                   <div className="text-[10px] text-slate-400 font-semibold truncate">
                     Nghị quyết: {meetingTitle}
                   </div>
-                  <div className="font-bold text-xs text-slate-800 truncate">
+                  <div className="font-semibold text-xs text-slate-800 truncate">
                     {actionItem.taskTitle}
                   </div>
-                  <div className="text-[10px] text-slate-500 flex items-center gap-2 font-medium">
+                  <div className="text-[10.5px] text-slate-500 flex items-center gap-2 font-medium">
                     <span>👤 {actionItem.assigneeName}</span>
                     <span>• Hạn: {actionItem.dueDate}</span>
                   </div>
@@ -1235,7 +1276,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                           'success'
                         );
                       }}
-                      className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[10.5px] font-bold cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold cursor-pointer shadow-xs transition-colors"
                     >
                       + Vào Bảng DRI
                     </button>
@@ -1243,7 +1284,7 @@ export const ProjectTasksView: React.FC<ProjectTasksViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onNavigateTab('meetings')}
-                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold cursor-pointer transition-colors"
                   >
                     Mở Họp →
                   </button>
