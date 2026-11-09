@@ -18,6 +18,7 @@ import {
   Award,
   TrendingUp,
   Database,
+  AlertOctagon,
 } from 'lucide-react';
 import { CeoTabId, OperatingMode } from '../../types/ceoTypes';
 
@@ -48,6 +49,9 @@ interface ExecutiveSidebarProps {
   inProgressLsxCount?: number;
   pendingProposalsCount?: number;
   overdueLsxCount?: number;
+  pendingDecisionsCount?: number;
+  activeMissionsCount?: number;
+  lineStopAndonCount?: number;
 }
 
 export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
@@ -65,22 +69,26 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
   inProgressLsxCount = 0,
   pendingProposalsCount = 0,
   overdueLsxCount = 0,
+  pendingDecisionsCount = 0,
+  activeMissionsCount = 0,
+  lineStopAndonCount = 0,
 }) => {
   const NAV_GROUPS: NavGroup[] = [
     {
-      groupTitle: 'ĐIỀU HÀNH & TỔNG QUAN',
+      groupTitle: 'TRUNG TÂM ĐIỀU HÀNH CEO',
       items: [
         {
           id: 'dashboard',
-          label: 'Bảng Điều Hành',
+          label: 'Bảng Điều Hành CEO',
+          sublabel: 'Quyết định • Mục tiêu • Cảnh báo',
           icon: LayoutDashboard,
-          badgeCount: overdueLsxCount > 0 ? overdueLsxCount : undefined,
+          badgeCount: pendingDecisionsCount > 0 ? pendingDecisionsCount : overdueLsxCount > 0 ? overdueLsxCount : undefined,
           badgeTone: 'rose',
         },
         {
           id: 'copilot',
-          label: 'Trợ Lý',
-          sublabel: 'Cố vấn điều hành AI',
+          label: 'Trợ Lý C-Level Copilot',
+          sublabel: 'Cố vấn chiến lược AI',
           icon: Sparkles,
           badgeCount: atRiskOkrCount > 0 ? atRiskOkrCount : undefined,
           badgeTone: 'slate',
@@ -88,88 +96,85 @@ export const ExecutiveSidebar: React.FC<ExecutiveSidebarProps> = ({
       ],
     },
     {
-      groupTitle: 'CHIẾN LƯỢC & MỤC TIÊU',
+      groupTitle: 'HỆ THỐNG 4 TẦNG THỰC THI',
       items: [
         {
-          id: 'swot-tows',
-          label: 'Chiến Lược',
-          sublabel: 'Công cụ SWOT & TOWS',
-          icon: Compass,
+          id: 'prep',
+          label: 'Tầng 1: Nhiệm Vụ & PREP',
+          sublabel: 'Chỉ thị CEO & Single DRI',
+          icon: FileText,
+          badgeCount: activeMissionsCount > 0 ? activeMissionsCount : undefined,
+          badgeTone: 'gold',
         },
         {
           id: 'okr',
-          label: 'Mục Tiêu Chiến Lược',
-          sublabel: 'Phương pháp OKR',
+          label: 'Tầng 2: Mục Tiêu OKR',
+          sublabel: 'Baseline ➔ Target & DRI',
           icon: TrendingUp,
           badgeCount: atRiskOkrCount > 0 ? atRiskOkrCount : undefined,
           badgeTone: 'rose',
         },
         {
-          id: 'smart',
-          label: 'Mục Tiêu Định Lượng',
-          sublabel: 'Tiêu chuẩn SMART',
-          icon: Target,
-          badgeCount: activeSmartCount > 0 ? activeSmartCount : undefined,
-          badgeTone: 'slate',
-        },
-      ],
-    },
-    {
-      groupTitle: 'THỰC THI & CẢI TIẾN',
-      items: [
-        {
-          id: 'tasks',
-          label: 'Lịch Trình & Tác Vụ',
-          sublabel: 'Nguyên tắc DRI',
-          icon: CheckSquare,
-          badgeCount: activeDriCount > 0 ? activeDriCount : undefined,
-          badgeTone: 'slate',
-        },
-        {
           id: 'pdca',
-          label: 'Cải Tiến & Chuẩn Hóa',
-          sublabel: 'Chu trình PDCA & SOP',
+          label: 'Tầng 3: Sáng Kiến PDCA',
+          sublabel: 'Chu kỳ cải tiến & SOP',
           icon: RefreshCw,
           badgeCount: activePdcaCount > 0 ? activePdcaCount : undefined,
           badgeTone: 'slate',
         },
         {
+          id: 'tasks',
+          label: 'Tầng 4: Tác Vụ DRI & RACI',
+          sublabel: 'Cam kết SLA 24h & Blocker',
+          icon: CheckSquare,
+          badgeCount: activeDriCount > 0 ? activeDriCount : undefined,
+          badgeTone: 'slate',
+        },
+      ],
+    },
+    {
+      groupTitle: 'KIỂM SOÁT HIỆN TRƯỜNG & SỰ CỐ',
+      items: [
+        {
+          id: 'andon',
+          label: 'Sự Cố Andon & 5 Whys',
+          sublabel: 'Báo sự cố & Dừng dòng',
+          icon: AlertOctagon,
+          badgeCount: lineStopAndonCount > 0 ? lineStopAndonCount : undefined,
+          badgeTone: 'rose',
+        },
+        {
+          id: 'swot-tows',
+          label: 'Chiến Lược SWOT & TOWS',
+          sublabel: 'Biến điểm yếu thành việc',
+          icon: Compass,
+        },
+        {
           id: 'meetings',
-          label: 'Họp Giao Ban',
-          sublabel: 'Nguyên tắc 3-6-9',
+          label: 'Họp Giao Ban 3-6-9',
+          sublabel: '30 phút trọng tâm & giao việc',
           icon: Users,
           badgeCount: activeMeetingsCount > 0 ? activeMeetingsCount : undefined,
           badgeTone: 'slate',
         },
         {
-          id: 'prep',
-          label: 'Truyền Thông Điều Hành',
-          sublabel: 'Cấu trúc PREP',
-          icon: FileText,
+          id: 'erp-bridge',
+          label: 'Vận Hành Sản Xuất ERP',
+          sublabel: '123 LSX nhà máy MVĐN',
+          icon: Database,
+          badgeCount: inProgressLsxCount > 0 ? inProgressLsxCount : undefined,
+          badgeTone: 'slate',
         },
       ],
     },
     {
-      groupTitle: 'CON NGƯỜI & VĂN HÓA',
+      groupTitle: 'VĂN HÓA & CON NGƯỜI',
       items: [
         {
           id: 'people',
           label: 'Nhân Sự & Động Lực',
           sublabel: 'Mô hình Maslow & FFC',
           icon: HeartHandshake,
-        },
-      ],
-    },
-    {
-      groupTitle: 'HỆ THỐNG NGOẠI VI ERP',
-      items: [
-        {
-          id: 'erp-bridge',
-          label: 'Vận Hành Sản Xuất',
-          sublabel: 'Dữ liệu ERP MVĐN',
-          icon: Database,
-          badgeCount: inProgressLsxCount > 0 ? inProgressLsxCount : undefined,
-          badgeTone: 'slate',
         },
       ],
     },

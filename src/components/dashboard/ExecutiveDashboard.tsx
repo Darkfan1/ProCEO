@@ -371,6 +371,121 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         </div>
       </div>
 
+      {/* 4-TIER CLOSED LOOP PIPELINE BAR */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xs">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+              Kiến Trúc Thực Thi 4 Tầng Khép Kín (Closed-Loop Operational Engine)
+            </span>
+          </div>
+          <span className="text-[10.5px] text-slate-500 font-medium hidden sm:inline">
+            Click vào từng tầng để mở không gian làm việc chuyên sâu
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          {/* Tầng 1 */}
+          <div
+            onClick={() => onNavigateTab('prep')}
+            className="p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-indigo-700">Tầng 1 • Sứ Mệnh</span>
+              <ArrowRight className="w-3 h-3 text-indigo-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <div className="mt-1">
+              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span>{missions.length}</span>
+                <span className="text-[11px] font-semibold text-slate-500">Missions</span>
+              </div>
+              <p className="text-[10px] text-slate-600 truncate mt-0.5">Chỉ thị cấu trúc PREP & Single DRI</p>
+            </div>
+          </div>
+
+          {/* Tầng 2 */}
+          <div
+            onClick={() => onNavigateTab('okr')}
+            className="p-2.5 rounded-xl border border-blue-100 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-blue-700">Tầng 2 • Đo Lường</span>
+              <ArrowRight className="w-3 h-3 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <div className="mt-1">
+              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span>{okrs.length}</span>
+                <span className="text-[11px] font-semibold text-slate-500">OKRs ({okrs.reduce((acc, o) => acc + (o.keyResults?.length || 0), 0)} KRs)</span>
+              </div>
+              <p className="text-[10px] text-slate-600 truncate mt-0.5">SMART Baseline & Target định lượng</p>
+            </div>
+          </div>
+
+          {/* Tầng 3 */}
+          <div
+            onClick={() => onNavigateTab('pdca')}
+            className="p-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-700">Tầng 3 • Sáng Kiến</span>
+              <ArrowRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <div className="mt-1">
+              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span>{pdcaCycles.length}</span>
+                <span className="text-[11px] font-semibold text-slate-500">PDCA</span>
+              </div>
+              <p className="text-[10px] text-slate-600 truncate mt-0.5">Chu trình Plan-Do-Check-Act & SOP</p>
+            </div>
+          </div>
+
+          {/* Tầng 4 */}
+          <div
+            onClick={() => onNavigateTab('tasks')}
+            className="p-2.5 rounded-xl border border-purple-100 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-300 transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-purple-700">Tầng 4 • Tác Vụ</span>
+              <ArrowRight className="w-3 h-3 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <div className="mt-1">
+              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span>{smartTasks.filter((t) => isDriActionTask(t) && t.status !== 'DONE').length}</span>
+                <span className="text-[11px] font-semibold text-slate-500">DRI Tasks</span>
+              </div>
+              <p className="text-[10px] text-slate-600 truncate mt-0.5">Phân vai RACI, Blocker & Bằng chứng</p>
+            </div>
+          </div>
+
+          {/* Hiện Trường Andon */}
+          <div
+            onClick={() => onNavigateTab('andon')}
+            className="col-span-2 md:col-span-1 p-2.5 rounded-xl border border-rose-100 bg-rose-50/50 hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1">
+                <AlertOctagon className="w-2.5 h-2.5" />
+                <span>Andon & 5 Whys</span>
+              </span>
+              <ArrowRight className="w-3 h-3 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <div className="mt-1">
+              <div className="text-sm font-black text-rose-700 flex items-center gap-1.5">
+                <span>{andonIssues.filter((i) => i.status !== 'CLOSED_STANDARDIZED').length}</span>
+                <span className="text-[11px] font-semibold text-rose-500">Sự cố</span>
+                {andonIssues.some((i) => i.severity === 'LINE_STOP' && i.status !== 'CLOSED_STANDARDIZED') && (
+                  <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black animate-pulse">
+                    STOP
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-600 truncate mt-0.5">Kanban 6 bước & Phân tích gốc rễ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* HỘP QUYẾT ĐỊNH CẦN CEO HÔM NAY (DECISION BOX - ĐƯA VIỆC CẦN QUYẾT LÊN ĐẦU) */}
       {/* ─────────────────────────────────────────────────────────────────── */}

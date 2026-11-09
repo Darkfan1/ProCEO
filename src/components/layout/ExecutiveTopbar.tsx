@@ -15,64 +15,68 @@ interface ExecutiveTopbarProps {
 
 const TAB_TITLES: Record<CeoTabId, { title: string; subtitle: string }> = {
   dashboard: {
-    title: 'Bảng Điều Hành',
-    subtitle: '',
+    title: 'Bảng Điều Hành CEO',
+    subtitle: 'Trung tâm Quyết Định • Dải Mục Tiêu Chiến Lược • Cảnh Báo Quy Tắc',
   },
   cockpit: {
-    title: 'Bảng Điều Hành',
-    subtitle: '',
+    title: 'Bảng Điều Hành CEO',
+    subtitle: 'Trung tâm Quyết Định • Dải Mục Tiêu Chiến Lược • Cảnh Báo Quy Tắc',
   },
-  'swot-tows': {
-    title: 'Chiến Lược',
-    subtitle: 'Công cụ SWOT & TOWS',
+  prep: {
+    title: 'Tầng 1: Nhiệm Vụ & PREP',
+    subtitle: 'Chỉ thị CEO cấu trúc PREP • Single DRI tối cao • Phân rã 4 tầng',
   },
   okr: {
-    title: 'Mục Tiêu Chiến Lược',
-    subtitle: 'Phương pháp OKR',
+    title: 'Tầng 2: Mục Tiêu Chiến Lược OKR',
+    subtitle: 'Mục tiêu định tính & Key Results đo được (Baseline ➔ Target)',
   },
-  smart: {
-    title: 'Mục Tiêu Định Lượng',
-    subtitle: 'Tiêu chuẩn SMART',
+  pdca: {
+    title: 'Tầng 3: Sáng Kiến Cải Tiến PDCA',
+    subtitle: 'Chu trình Plan ➔ Do ➔ Check ➔ Act ➔ Chuẩn hóa SOP',
   },
   tasks: {
-    title: 'Lịch Trình & Tác Vụ',
-    subtitle: 'Nguyên tắc DRI',
+    title: 'Tầng 4: Tác Vụ Thực Thi DRI & RACI',
+    subtitle: '1 Single DRI bắt buộc • Cam kết SLA 24h • Báo điểm nghẽn Blocker',
+  },
+  andon: {
+    title: 'Sự Cố Andon Số & 5 Whys',
+    subtitle: 'Báo sự cố khẩn cấp • Dán ảnh clipboard • Phân tích nguyên nhân 5 Whys',
+  },
+  'swot-tows': {
+    title: 'Chiến Lược SWOT & TOWS',
+    subtitle: 'Phân tích ma trận cạnh tranh • Chuyển hóa điểm yếu thành hành động',
+  },
+  smart: {
+    title: 'Mục Tiêu Định Lượng SMART',
+    subtitle: 'Tiêu chuẩn SMART 5 chiều • Đo lường tiến độ định kỳ',
   },
   execution: {
     title: 'Hệ Thống Thực Thi',
     subtitle: 'Chu trình khép kín: SMART ➔ PDCA ➔ Họp 3-6-9',
   },
-  pdca: {
-    title: 'Cải Tiến & Chuẩn Hóa',
-    subtitle: 'Chu trình PDCA & SOP',
-  },
   meetings: {
-    title: 'Họp Giao Ban',
-    subtitle: 'Nguyên tắc 3-6-9',
-  },
-  prep: {
-    title: 'Truyền Thông Điều Hành',
-    subtitle: 'Cấu trúc PREP',
+    title: 'Họp Giao Ban Điều Hành 3-6-9',
+    subtitle: '30 phút trọng tâm • Ban hành nghị quyết & giao việc ngay cho DRI',
   },
   people: {
     title: 'Nhân Sự & Động Lực',
-    subtitle: 'Mô hình Maslow & FFC',
+    subtitle: 'Mô hình Maslow 5 tầng nhu cầu & Khen ngợi FFC kịp thời',
   },
   copilot: {
-    title: 'Trợ Lý',
-    subtitle: 'Cố vấn điều hành AI',
+    title: 'Trợ Lý Điều Hành C-Level (AI Copilot)',
+    subtitle: 'Cố vấn chiến lược & phân tích đa chiều realtime',
   },
   settings: {
     title: 'Cài Đặt Hệ Thống',
-    subtitle: 'Sao lưu & Phân quyền',
+    subtitle: 'Sao lưu dữ liệu, phân quyền & tùy chỉnh giao diện',
   },
   'erp-bridge': {
-    title: 'Vận Hành Sản Xuất',
-    subtitle: 'Dữ liệu ERP MVĐN',
+    title: 'Vận Hành Sản Xuất ERP',
+    subtitle: 'Dữ liệu realtime 123 lệnh sản xuất & tiến độ nhà máy MVĐN',
   },
   'mindset-hub': {
-    title: 'Sổ Tay Tri Thức Quản Trị',
-    subtitle: 'Phương pháp luận điều hành C-Level',
+    title: 'Sổ Tay Tri Thức Quản Trị C-Level',
+    subtitle: '8 Phương pháp luận quản trị doanh nghiệp & vận hành tinh gọn',
   },
 };
 

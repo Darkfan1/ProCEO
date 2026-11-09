@@ -15,6 +15,7 @@ export type CeoTabId =
   | 'cockpit'
   | 'execution'
   | 'erp-bridge'
+  | 'andon'
   | 'mindset-hub';
 
 export type OperatingMode = 'PERSONAL' | 'ORGANIZATION';

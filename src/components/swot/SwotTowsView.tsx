@@ -15,6 +15,7 @@ import {
   Target,
   Layers,
   ArrowUpRight,
+  CheckSquare,
 } from 'lucide-react';
 import { SwotBoard, SwotEntry, TowsStrategicAction, CeoTabId } from '../../types/ceoTypes';
 import { dialogService } from '../common/CustomDialog';
@@ -278,7 +279,21 @@ Mỗi chiến lược nêu rõ: Tiêu đề hành động, Bộ phận phụ tr�
                     </span>
                   </div>
                   {/* Rule 2: Clean Table UI: Action buttons opacity-0 group-hover:opacity-100 */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        onNavigateTab('tasks', undefined, {
+                          title: `Phát huy: ${item.content}`,
+                          assignee: 'Quản Đốc Sản Xuất',
+                          description: `Hành động phát huy điểm mạnh SWOT: ${item.content}`,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold cursor-pointer inline-flex items-center gap-1"
+                      title="Giao Tác Vụ DRI để phát huy thế mạnh này"
+                    >
+                      <CheckSquare className="w-2.5 h-2.5" />
+                      <span>Giao DRI</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteEntry(item.id)}
                       className="p-1 rounded text-rose-500 hover:bg-rose-50 cursor-pointer"
@@ -329,7 +344,21 @@ Mỗi chiến lược nêu rõ: Tiêu đề hành động, Bộ phận phụ tr�
                     </span>
                   </div>
                   {/* Rule 2: Clean Table UI: Action buttons opacity-0 group-hover:opacity-100 */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        onNavigateTab('tasks', undefined, {
+                          title: `Khắc phục: ${item.content}`,
+                          assignee: 'Quản Đốc Sản Xuất',
+                          description: `Hành động khắc phục điểm yếu SWOT: ${item.content} (Ảnh hưởng: ${item.impact})`,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 text-rose-800 text-[10px] font-bold cursor-pointer inline-flex items-center gap-1"
+                      title="Giao Tác Vụ DRI để khắc phục điểm yếu này"
+                    >
+                      <CheckSquare className="w-2.5 h-2.5" />
+                      <span>Giao DRI</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteEntry(item.id)}
                       className="p-1 rounded text-rose-500 hover:bg-rose-50 cursor-pointer"
@@ -380,7 +409,21 @@ Mỗi chiến lược nêu rõ: Tiêu đề hành động, Bộ phận phụ tr�
                     </span>
                   </div>
                   {/* Rule 2: Clean Table UI: Action buttons opacity-0 group-hover:opacity-100 */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        onNavigateTab('tasks', undefined, {
+                          title: `Khai thác: ${item.content}`,
+                          assignee: 'Kinh Doanh & Điều Phối',
+                          description: `Hành động nắm bắt cơ hội SWOT: ${item.content}`,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded bg-sky-100 hover:bg-sky-200 text-sky-800 text-[10px] font-bold cursor-pointer inline-flex items-center gap-1"
+                      title="Giao Tác Vụ DRI để nắm bắt cơ hội này"
+                    >
+                      <CheckSquare className="w-2.5 h-2.5" />
+                      <span>Giao DRI</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteEntry(item.id)}
                       className="p-1 rounded text-rose-500 hover:bg-rose-50 cursor-pointer"
@@ -431,7 +474,21 @@ Mỗi chiến lược nêu rõ: Tiêu đề hành động, Bộ phận phụ tr�
                     </span>
                   </div>
                   {/* Rule 2: Clean Table UI: Action buttons opacity-0 group-hover:opacity-100 */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        onNavigateTab('tasks', undefined, {
+                          title: `Phòng ngừa rủi ro: ${item.content}`,
+                          assignee: 'Quản Đốc Sản Xuất',
+                          description: `Hành động ứng phó thách thức SWOT: ${item.content} (Ảnh hưởng: ${item.impact})`,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-800 text-[10px] font-bold cursor-pointer inline-flex items-center gap-1"
+                      title="Giao Tác Vụ DRI để ứng phó nguy cơ này"
+                    >
+                      <CheckSquare className="w-2.5 h-2.5" />
+                      <span>Giao DRI</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteEntry(item.id)}
                       className="p-1 rounded text-rose-500 hover:bg-rose-50 cursor-pointer"

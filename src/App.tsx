@@ -84,6 +84,7 @@ import { ErpAdminLoginGate } from './components/ErpAdminLoginGate';
 import { OkrManagementView } from './components/okr/OkrManagementView';
 import { SwotTowsView } from './components/swot/SwotTowsView';
 import { PrepReportsView } from './components/prep/PrepReportsView';
+import { AndonBoardView } from './components/andon/AndonBoardView';
 import { PeopleManagementView } from './components/people/PeopleManagementView';
 import { AiCopilotView } from './components/copilot/AiCopilotView';
 import { SmartGoalsView } from './components/smart/SmartGoalsView';
@@ -922,6 +923,9 @@ export default function App() {
           inProgressLsxCount={radarMetrics.inProgressLsxCount}
           pendingProposalsCount={radarMetrics.pendingProposals.length}
           overdueLsxCount={radarMetrics.overdueLsx.length}
+          pendingDecisionsCount={decisions.filter((d) => d.status === 'PENDING').length}
+          activeMissionsCount={missions.filter((m) => m.status === 'ON_TRACK' || m.status === 'AT_RISK').length}
+          lineStopAndonCount={andonIssues.filter((i) => i.severity === 'LINE_STOP' && i.status !== 'CLOSED_STANDARDIZED').length}
         />
       </div>
 
@@ -959,6 +963,9 @@ export default function App() {
               inProgressLsxCount={radarMetrics.inProgressLsxCount}
               pendingProposalsCount={radarMetrics.pendingProposals.length}
               overdueLsxCount={radarMetrics.overdueLsx.length}
+          pendingDecisionsCount={decisions.filter((d) => d.status === 'PENDING').length}
+          activeMissionsCount={missions.filter((m) => m.status === 'ON_TRACK' || m.status === 'AT_RISK').length}
+          lineStopAndonCount={andonIssues.filter((i) => i.severity === 'LINE_STOP' && i.status !== 'CLOSED_STANDARDIZED').length}
             />
           </div>
         </div>
@@ -1253,10 +1260,43 @@ export default function App() {
               onDeletePrep={(id) =>
                 ceoStorageService.removeItem('axis_ceo_prep_docs', id, prepMessages, setPrepMessages)
               }
+              missions={missions}
+              onSaveMission={async (m) =>
+                ceoStorageService.upsertItem('axis_ceo_missions', m, missions, setMissions)
+              }
+              onDeleteMission={async (id) =>
+                ceoStorageService.removeItem('axis_ceo_missions', id, missions, setMissions)
+              }
+              onOpenPrepModal={() => setIsPrepModalOpen(true)}
               navIntent={navIntent}
               onClearIntent={() => setNavIntent(null)}
               onNavigateTab={handleNavigateTab}
               activeUserName={activeUser?.name}
+            />
+          )}
+
+          {activeTab === 'andon' && (
+            <AndonBoardView
+              andonIssues={andonIssues}
+              onSaveIssue={async (issue) => {
+                await ceoStorageService.upsertItem(
+                  'axis_ceo_andon_issues',
+                  issue,
+                  andonIssues,
+                  setAndonIssues
+                );
+              }}
+              onDeleteIssue={async (id) => {
+                await ceoStorageService.removeItem(
+                  'axis_ceo_andon_issues',
+                  id,
+                  andonIssues,
+                  setAndonIssues
+                );
+              }}
+              onOpenAndonModal={() => setIsAndonModalOpen(true)}
+              onNavigateTab={handleNavigateTab}
+              staffDirectory={staffDirectory}
             />
           )}
 
