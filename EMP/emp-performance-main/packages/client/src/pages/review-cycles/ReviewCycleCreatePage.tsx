@@ -1,0 +1,244 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Save } from "lucide-react";
+import { apiPost, apiGet } from "@/api/client";
+import type { CompetencyFramework, ReviewCycle } from "@emp-performance/shared";
+
+const CYCLE_TYPES = [
+  { value: "quarterly", labelKey: "typeQuarterly" },
+  { value: "annual", labelKey: "typeAnnual" },
+  { value: "mid_year", labelKey: "typeMidYear" },
+  { value: "360_degree", labelKey: "type360Degree" },
+  { value: "probation", labelKey: "typeProbation" },
+];
+
+export function ReviewCycleCreatePage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: "",
+    type: "annual",
+    start_date: "",
+    end_date: "",
+    review_deadline: "",
+    framework_id: "",
+    description: "",
+  });
+
+  const { data: frameworksData } = useQuery({
+    queryKey: ["frameworks"],
+    queryFn: () => apiGet<CompetencyFramework[]>("/competencies"),
+  });
+  const frameworks = frameworksData?.data ?? [];
+
+  const createMutation = useMutation({
+    mutationFn: (data: typeof form) =>
+      apiPost<ReviewCycle>("/review-cycles", {
+        ...data,
+        framework_id: data.framework_id || undefined,
+        review_deadline: data.review_deadline || undefined,
+      }),
+    onSuccess: (res) => {
+      navigate(`/review-cycles/${res.data!.id}`);
+    },
+  });
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  const dateError =
+    form.start_date && form.end_date && form.end_date < form.start_date
+      ? t("reviewCycleCreate.endBeforeStartError")
+      : form.start_date && form.review_deadline && form.review_deadline < form.start_date
+        ? t("reviewCycleCreate.deadlineBeforeStartError")
+        : null;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (dateError) return;
+    createMutation.mutate(form);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => navigate("/review-cycles")}
+          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("reviewCycleCreate.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("reviewCycleCreate.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-5">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("reviewCycleCreate.cycleName")} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              placeholder={t("reviewCycleCreate.namePlaceholder")}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+
+          {/* Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("reviewCycleCreate.cycleType")} <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="type"
+              value={form.type}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              {CYCLE_TYPES.map((ct) => (
+                <option key={ct.value} value={ct.value}>
+                  {t(`reviewCycleCreate.${ct.labelKey}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("reviewCycleCreate.startDate")} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="start_date"
+                value={form.start_date}
+                onChange={handleChange}
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("reviewCycleCreate.endDate")} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="end_date"
+                value={form.end_date}
+                onChange={handleChange}
+                min={form.start_date || undefined}
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+          </div>
+
+          {dateError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {dateError}
+            </div>
+          )}
+
+          {/* Review deadline */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("reviewCycleCreate.reviewDeadline")}
+            </label>
+            <input
+              type="date"
+              name="review_deadline"
+              value={form.review_deadline}
+              onChange={handleChange}
+              min={form.start_date || undefined}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {t("reviewCycleCreate.reviewDeadlineHint")}
+            </p>
+          </div>
+
+          {/* Framework selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("reviewCycleCreate.competencyFramework")}
+            </label>
+            <select
+              name="framework_id"
+              value={form.framework_id}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="">{t("reviewCycleCreate.noFramework")}</option>
+              {frameworks.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("reviewCycleCreate.description")}
+            </label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={3}
+              placeholder={t("reviewCycleCreate.descriptionPlaceholder")}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+        </div>
+
+        {/* Error message */}
+        {createMutation.isError && (
+          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            {(createMutation.error as any)?.response?.data?.error?.message ??
+              t("reviewCycleCreate.createError")}
+          </div>
+        )}
+
+        {/* Submit */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={createMutation.isPending || !!dateError}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            {createMutation.isPending
+              ? t("reviewCycleCreate.creating")
+              : t("reviewCycleCreate.createCycle")}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/review-cycles")}
+            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("common.cancel")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

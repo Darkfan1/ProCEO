@@ -1,0 +1,518 @@
+// ============================================================================
+// ANALYTICS SERVICE (Core)
+// Provides performance analytics: overview stats, ratings distribution,
+// trends, team comparisons, goal completion, top performers, and skills gap.
+//
+// Nine-box grid logic: see nine-box.service.ts
+// Succession planning: see succession.service.ts
+// ============================================================================
+
+import { getDB } from "../../db/adapters";
+import { resolveEmployees } from "./nine-box.service";
+
+// Re-export nine-box and succession so existing imports continue to work
+export {
+  classifyNineBox,
+  getNineBoxData,
+  createPotentialAssessment,
+  listPotentialAssessments,
+  deletePotentialAssessment,
+  resolveEmployees,
+} from "./nine-box.service";
+
+export {
+  createSuccessionPlan,
+  listSuccessionPlans,
+  getSuccessionPlan,
+  addSuccessionCandidate,
+  updateSuccessionCandidate,
+} from "./succession.service";
+
+// ---------------------------------------------------------------------------
+// Types (skills gap — kept in core analytics)
+// ---------------------------------------------------------------------------
+
+export interface CompetencyGap {
+  competency_id: string;
+  name: string;
+  category: string | null;
+  currentRating: number;
+  requiredRating: number;
+  gap: number;
+  status: "exceeds" | "meets" | "gap";
+}
+
+export interface SkillsGapResult {
+  employee_id: number;
+  competencies: CompetencyGap[];
+  overallReadiness: number;
+}
+
+export interface LearningRecommendation {
+  competency: string;
+  gap: number;
+  recommendation: string;
+}
+
+// ---------------------------------------------------------------------------
+// Overview
+// ---------------------------------------------------------------------------
+
+export async function getOverview(orgId: number) {
+  const db = getDB();
+
+  const [activeCycles, pendingReviews, totalGoals, completedGoals, pipCount, feedbackCount] =
+    await Promise.all([
+      db.count("review_cycles", { organization_id: orgId, status: "active" }),
+      db.count("reviews", { organization_id: orgId, status: "pending" }),
+      db.count("goals", { organization_id: orgId }),
+      db.count("goals", { organization_id: orgId, status: "completed" }),
+      db.count("performance_improvement_plans", { organization_id: orgId, status: "active" }),
+      db.count("continuous_feedback", { organization_id: orgId }),
+    ]);
+
+  const goalCompletionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+
+  return {
+    activeCycles,
+    pendingReviews,
+    goalCompletionRate,
+    pipCount,
+    feedbackCount,
+    totalGoals,
+    completedGoals,
+  };
+}
+
+// Per-user overview for the My Performance page. Counts only the current
+// user's pending reviews, received feedback, and own goal completion —
+// org-wide values were misleading on a self-service screen (#7, #9).
+export async function getMyOverview(orgId: number, userId: number) {
+  const db = getDB();
+
+  const [pendingReviews, totalGoals, completedGoals, feedbackCount] = await Promise.all([
+    db.count("reviews", {
+      organization_id: orgId,
+      reviewer_id: userId,
+      status: "pending",
+    }),
+    db.count("goals", { organization_id: orgId, employee_id: userId }),
+    db.count("goals", {
+      organization_id: orgId,
+      employee_id: userId,
+      status: "completed",
+    }),
+    db.count("continuous_feedback", { organization_id: orgId, to_user_id: userId }),
+  ]);
+
+  const goalCompletionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+
+  return {
+    pendingReviews,
+    goalCompletionRate,
+    feedbackCount,
+    totalGoals,
+    completedGoals,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Ratings Distribution (bell curve)
+// ---------------------------------------------------------------------------
+
+export async function getRatingsDistribution(orgId: number, cycleId: string) {
+  const db = getDB();
+
+  // Try cached distribution first
+  const cached = await db.findMany<any>("rating_distributions", {
+    filters: { organization_id: orgId, cycle_id: cycleId },
+    sort: { field: "rating", order: "asc" },
+    limit: 10,
+  });
+
+  if (cached.data.length > 0) {
+    return cached.data;
+  }
+
+  // Compute from reviews on the fly
+  const result = await db.raw<any>(
+    `SELECT
+       FLOOR(overall_rating) as rating,
+       COUNT(*) as count
+     FROM reviews
+     WHERE organization_id = ?
+       AND cycle_id = ?
+       AND overall_rating IS NOT NULL
+       AND status = 'submitted'
+     GROUP BY FLOOR(overall_rating)
+     ORDER BY rating ASC`,
+    [orgId, cycleId],
+  );
+
+  const rows = Array.isArray(result) ? (result[0] || result) : [];
+  return Array.isArray(rows) ? rows : [];
+}
+
+// ---------------------------------------------------------------------------
+// Trends (ratings over multiple cycles)
+// ---------------------------------------------------------------------------
+
+export async function getTrends(orgId: number, limit = 10) {
+  const db = getDB();
+  const safeLimit = Math.max(1, Math.min(50, Math.floor(limit) || 10));
+
+  const result = await db.raw<any>(
+    `SELECT
+       rc.name as cycle_name,
+       rc.id as cycle_id,
+       AVG(r.overall_rating) as avg_rating,
+       COUNT(r.id) as review_count
+     FROM review_cycles rc
+     LEFT JOIN reviews r ON r.cycle_id = rc.id
+       AND r.organization_id = ?
+       AND r.status = 'submitted'
+       AND r.overall_rating IS NOT NULL
+     WHERE rc.organization_id = ?
+     GROUP BY rc.id, rc.name, rc.start_date
+     ORDER BY rc.start_date ASC
+     LIMIT ?`,
+    [orgId, orgId, safeLimit],
+  );
+
+  const rows = Array.isArray(result) ? (result[0] || result) : [];
+  return Array.isArray(rows) ? rows : [];
+}
+
+// ---------------------------------------------------------------------------
+// Team Comparison
+// ---------------------------------------------------------------------------
+
+export async function getTeamComparison(orgId: number, managerId: number) {
+  const db = getDB();
+
+  const result = await db.raw<any>(
+    `SELECT
+       r.employee_id,
+       AVG(r.overall_rating) as avg_rating,
+       COUNT(r.id) as review_count
+     FROM reviews r
+     INNER JOIN review_cycle_participants rcp ON rcp.cycle_id = r.cycle_id
+       AND rcp.employee_id = r.employee_id
+     WHERE r.organization_id = ?
+       AND rcp.manager_id = ?
+       AND r.status = 'submitted'
+       AND r.overall_rating IS NOT NULL
+     GROUP BY r.employee_id
+     ORDER BY avg_rating DESC`,
+    [orgId, managerId],
+  );
+
+  const rows: any[] = Array.isArray(result) ? (result[0] || result) : [];
+  const list = Array.isArray(rows) ? rows : [];
+  // A6: resolve real employee names/departments.
+  const identities = await resolveEmployees(orgId, list.map((r) => Number(r.employee_id)));
+  return list.map((r) => {
+    const id = Number(r.employee_id);
+    const ident = identities.get(id);
+    return { ...r, employee_name: ident?.name ?? `Employee ${id}`, department: ident?.department ?? null };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Goal Completion
+// ---------------------------------------------------------------------------
+
+export async function getGoalCompletion(orgId: number) {
+  const db = getDB();
+
+  const result = await db.raw<any>(
+    `SELECT
+       category,
+       COUNT(*) as total,
+       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+       ROUND(AVG(progress), 1) as avg_progress
+     FROM goals
+     WHERE organization_id = ?
+     GROUP BY category
+     ORDER BY category ASC`,
+    [orgId],
+  );
+
+  const rows = Array.isArray(result) ? (result[0] || result) : [];
+  return Array.isArray(rows) ? rows : [];
+}
+
+// ---------------------------------------------------------------------------
+// Top Performers
+// ---------------------------------------------------------------------------
+
+export async function getTopPerformers(orgId: number, cycleId: string, limit = 20) {
+  const db = getDB();
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit) || 20));
+
+  const result = await db.raw<any>(
+    `SELECT
+       r.employee_id,
+       AVG(r.overall_rating) as avg_rating,
+       COUNT(r.id) as review_count
+     FROM reviews r
+     WHERE r.organization_id = ?
+       AND r.cycle_id = ?
+       AND r.status = 'submitted'
+       AND r.overall_rating IS NOT NULL
+     GROUP BY r.employee_id
+     ORDER BY avg_rating DESC
+     LIMIT ?`,
+    [orgId, cycleId, safeLimit],
+  );
+
+  const rows: any[] = Array.isArray(result) ? (result[0] || result) : [];
+  const list = Array.isArray(rows) ? rows : [];
+  // A6: resolve real employee names/departments.
+  const identities = await resolveEmployees(orgId, list.map((r) => Number(r.employee_id)));
+  return list.map((r) => {
+    const id = Number(r.employee_id);
+    const ident = identities.get(id);
+    return { ...r, employee_name: ident?.name ?? `Employee ${id}`, department: ident?.department ?? null };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Skills Gap Analysis
+// ---------------------------------------------------------------------------
+
+export async function getSkillsGap(
+  orgId: number,
+  employeeId: number,
+): Promise<SkillsGapResult> {
+  const db = getDB();
+
+  // Find the employee's career track to determine required competencies
+  const track = await db.findOne<any>("employee_career_tracks", {
+    employee_id: employeeId,
+  });
+
+  // Get latest review for competency ratings
+  const latestReview = await db.raw<any>(
+    `SELECT r.id
+     FROM reviews r
+     WHERE r.organization_id = ?
+       AND r.employee_id = ?
+       AND r.status = 'submitted'
+       AND r.overall_rating IS NOT NULL
+     ORDER BY r.submitted_at DESC
+     LIMIT 1`,
+    [orgId, employeeId],
+  );
+
+  const reviewRows = Array.isArray(latestReview) ? (latestReview[0] || latestReview) : [];
+  const reviewId = Array.isArray(reviewRows) && reviewRows.length > 0 ? reviewRows[0].id : null;
+
+  // Get competency ratings from latest review
+  const ratingMap = new Map<string, number>();
+  if (reviewId) {
+    const ratings = await db.findMany<any>("review_competency_ratings", {
+      filters: { review_id: reviewId },
+      limit: 100,
+    });
+    for (const r of ratings.data) {
+      ratingMap.set(r.competency_id, r.rating);
+    }
+  }
+
+  // Get required competencies from the career path framework or all org competencies
+  let competencies: any[] = [];
+
+  if (track) {
+    // Get the career path's associated competency framework
+    const careerPath = await db.findOne<any>("career_paths", {
+      id: track.career_path_id,
+      organization_id: orgId,
+    });
+
+    if (careerPath) {
+      // Get competencies from all active frameworks in the org
+      const frameworks = await db.findMany<any>("competency_frameworks", {
+        filters: { organization_id: orgId, is_active: true },
+        limit: 100,
+      });
+
+      for (const fw of frameworks.data) {
+        const comps = await db.findMany<any>("competencies", {
+          filters: { framework_id: fw.id },
+          limit: 100,
+        });
+        competencies.push(...comps.data);
+      }
+    }
+  }
+
+  // If no career track, fall back to all active framework competencies
+  if (competencies.length === 0) {
+    const frameworks = await db.findMany<any>("competency_frameworks", {
+      filters: { organization_id: orgId, is_active: true },
+      limit: 100,
+    });
+    for (const fw of frameworks.data) {
+      const comps = await db.findMany<any>("competencies", {
+        filters: { framework_id: fw.id },
+        limit: 100,
+      });
+      competencies.push(...comps.data);
+    }
+  }
+
+  // Build gap analysis
+  const gaps: CompetencyGap[] = competencies.map((comp) => {
+    const currentRating = ratingMap.get(comp.id) ?? 0;
+    // Required rating defaults to 3 (meets expectations) for each competency weight level
+    const requiredRating = Math.min(5, Math.max(3, Math.round(comp.weight)));
+    const gap = requiredRating - currentRating;
+
+    let status: "exceeds" | "meets" | "gap";
+    if (gap < 0) status = "exceeds";
+    else if (gap === 0) status = "meets";
+    else status = "gap";
+
+    return {
+      competency_id: comp.id,
+      name: comp.name,
+      category: comp.category,
+      currentRating,
+      requiredRating,
+      gap,
+      status,
+    };
+  });
+
+  // Overall readiness: percentage of competencies that meet or exceed
+  const meetsOrExceeds = gaps.filter((g) => g.status !== "gap").length;
+  const overallReadiness = gaps.length > 0 ? Math.round((meetsOrExceeds / gaps.length) * 100) : 100;
+
+  return {
+    employee_id: employeeId,
+    competencies: gaps,
+    overallReadiness,
+  };
+}
+
+export async function getDepartmentSkillsGap(
+  orgId: number,
+  departmentId: string,
+): Promise<{
+  department: string;
+  employees: SkillsGapResult[];
+  aggregatedGaps: CompetencyGap[];
+  averageReadiness: number;
+}> {
+  const db = getDB();
+
+  // Get employees in the department via career paths
+  const careerPaths = await db.findMany<any>("career_paths", {
+    filters: { organization_id: orgId, department: departmentId },
+    limit: 100,
+  });
+
+  const employeeIds = new Set<number>();
+  for (const path of careerPaths.data) {
+    const tracks = await db.findMany<any>("employee_career_tracks", {
+      filters: { career_path_id: path.id },
+      limit: 1000,
+    });
+    for (const track of tracks.data) {
+      employeeIds.add(track.employee_id);
+    }
+  }
+
+  // Get skills gap for each employee
+  const employeeGaps: SkillsGapResult[] = [];
+  for (const empId of employeeIds) {
+    const gap = await getSkillsGap(orgId, empId);
+    employeeGaps.push(gap);
+  }
+
+  // Aggregate competency gaps across the department
+  const competencyTotals = new Map<string, { name: string; category: string | null; totalCurrent: number; totalRequired: number; count: number }>();
+
+  for (const empGap of employeeGaps) {
+    for (const comp of empGap.competencies) {
+      const existing = competencyTotals.get(comp.competency_id);
+      if (existing) {
+        existing.totalCurrent += comp.currentRating;
+        existing.totalRequired += comp.requiredRating;
+        existing.count += 1;
+      } else {
+        competencyTotals.set(comp.competency_id, {
+          name: comp.name,
+          category: comp.category,
+          totalCurrent: comp.currentRating,
+          totalRequired: comp.requiredRating,
+          count: 1,
+        });
+      }
+    }
+  }
+
+  const aggregatedGaps: CompetencyGap[] = [];
+  for (const [id, data] of competencyTotals.entries()) {
+    const avgCurrent = Math.round((data.totalCurrent / data.count) * 10) / 10;
+    const avgRequired = Math.round((data.totalRequired / data.count) * 10) / 10;
+    const gap = Math.round((avgRequired - avgCurrent) * 10) / 10;
+
+    let status: "exceeds" | "meets" | "gap";
+    if (gap < 0) status = "exceeds";
+    else if (gap === 0) status = "meets";
+    else status = "gap";
+
+    aggregatedGaps.push({
+      competency_id: id,
+      name: data.name,
+      category: data.category,
+      currentRating: avgCurrent,
+      requiredRating: avgRequired,
+      gap,
+      status,
+    });
+  }
+
+  const avgReadiness =
+    employeeGaps.length > 0
+      ? Math.round(employeeGaps.reduce((sum, e) => sum + e.overallReadiness, 0) / employeeGaps.length)
+      : 100;
+
+  return {
+    department: departmentId,
+    employees: employeeGaps,
+    aggregatedGaps,
+    averageReadiness: avgReadiness,
+  };
+}
+
+export function getLearningRecommendations(gaps: CompetencyGap[]): LearningRecommendation[] {
+  const recommendations: LearningRecommendation[] = [];
+  const gapCompetencies = gaps.filter((g) => g.status === "gap").sort((a, b) => b.gap - a.gap);
+
+  const recommendationMap: Record<string, string> = {
+    leadership: "Leadership development program recommended. Consider executive coaching and leadership workshops.",
+    technical: "Technical skills training needed. Explore certifications, online courses, and hands-on projects.",
+    communication: "Communication skills improvement suggested. Consider presentation workshops and writing courses.",
+    core: "Core competency development required. Focus on foundational skill-building exercises and mentoring.",
+    functional: "Functional expertise enhancement needed. Seek cross-functional projects and specialized training.",
+    behavioral: "Behavioral competency improvement recommended. Consider 360-degree feedback coaching and self-awareness workshops.",
+  };
+
+  for (const gap of gapCompetencies) {
+    const category = (gap.category ?? "core").toLowerCase();
+    const recommendation =
+      recommendationMap[category] ??
+      `Training recommended for ${gap.name}. Gap of ${gap.gap} points between current and required level.`;
+
+    recommendations.push({
+      competency: gap.name,
+      gap: gap.gap,
+      recommendation,
+    });
+  }
+
+  return recommendations;
+}

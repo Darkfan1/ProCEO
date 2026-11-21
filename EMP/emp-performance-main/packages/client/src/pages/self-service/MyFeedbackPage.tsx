@@ -1,0 +1,259 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  MessageSquare,
+  Heart,
+  Lightbulb,
+  Send,
+  Loader2,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { apiGet, apiDelete } from "@/api/client";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { formatDate } from "@/lib/utils";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Pagination } from "@/components/Pagination";
+import { EmptyState } from "@/components/EmptyState";
+import toast from "react-hot-toast";
+
+interface FeedbackItem {
+  id: string;
+  from_user_id: number | null;
+  from_user_name: string | null;
+  to_user_id: number;
+  to_user_name: string | null;
+  type: string;
+  visibility: string;
+  message: string;
+  tags: string | null;
+  is_anonymous: boolean;
+  created_at: string;
+}
+
+interface PaginatedFeedback {
+  data: FeedbackItem[];
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+const TYPE_ICONS: Record<string, typeof Heart> = {
+  kudos: Heart,
+  constructive: MessageSquare,
+  general: Lightbulb,
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  kudos: "bg-pink-50 text-pink-600",
+  constructive: "bg-blue-50 text-blue-600",
+  general: "bg-amber-50 text-amber-600",
+};
+
+export function MyFeedbackPage() {
+  const { t, i18n } = useTranslation();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<"received" | "given">("received");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const endpoint = tab === "received" ? "/feedback/received" : "/feedback/given";
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["feedback", tab, search, page],
+    queryFn: () =>
+      apiGet<PaginatedFeedback>(endpoint, {
+        page,
+        perPage: 20,
+        ...(search && { search }),
+      }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiDelete(`/feedback/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feedback"] });
+      toast.success(t("myFeedback.deleteSuccess"));
+    },
+    onError: (err: any) =>
+      toast.error(err.response?.data?.error?.message || t("myFeedback.deleteError")),
+  });
+
+  const feedbackList = data?.data?.data ?? [];
+  const pagination = data?.data;
+
+  function switchTab(next: "received" | "given") {
+    setTab(next);
+    setSearch("");
+    setPage(1);
+  }
+
+  async function handleDelete(id: string) {
+    if (
+      !(await confirm({
+        title: t("myFeedback.deleteTitle"),
+        message: t("myFeedback.deleteMessage"),
+        confirmLabel: t("common.delete"),
+        variant: "danger",
+      }))
+    )
+      return;
+    deleteMutation.mutate(id);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("myFeedback.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("myFeedback.subtitle")}</p>
+        </div>
+        <Link
+          to="/feedback/give"
+          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          <Send className="h-4 w-4" />
+          {t("myFeedback.giveFeedback")}
+        </Link>
+      </div>
+
+      {/* Tabs */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+          <button
+            onClick={() => switchTab("received")}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              tab === "received"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {t("myFeedback.received")}
+          </button>
+          <button
+            onClick={() => switchTab("given")}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              tab === "given"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {t("myFeedback.given")}
+          </button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t("myFeedback.searchPlaceholder")}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+      </div>
+
+      {/* List */}
+      {isLoading ? (
+        <div className="mt-8 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+        </div>
+      ) : feedbackList.length === 0 ? (
+        <EmptyState
+          icon={MessageSquare}
+          title={t(search ? `myFeedback.empty.${tab}Search` : `myFeedback.empty.${tab}`)}
+          description={
+            tab === "received"
+              ? t("myFeedback.empty.receivedDescription")
+              : t("myFeedback.empty.givenDescription")
+          }
+        />
+      ) : (
+        <div className="mt-4 space-y-3">
+          {feedbackList.map((item) => {
+            const Icon = TYPE_ICONS[item.type] || MessageSquare;
+            const colorClass = TYPE_COLORS[item.type] || TYPE_COLORS.constructive;
+            const tags: string[] = item.tags
+              ? (typeof item.tags === "string" ? JSON.parse(item.tags) : item.tags)
+              : [];
+
+            return (
+              <div
+                key={item.id}
+                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${colorClass}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusBadge colorClass={colorClass} className="px-2">
+                        {t(`myFeedback.types.${item.type}`, { defaultValue: item.type })}
+                      </StatusBadge>
+                      <span className="text-xs text-gray-400">
+                        {tab === "received"
+                          ? t("myFeedback.fromUser", {
+                              name:
+                                item.is_anonymous || item.from_user_id == null
+                                  ? t("myFeedback.anonymous")
+                                  : item.from_user_name || t("myFeedback.userNumber", { id: item.from_user_id }),
+                            })
+                          : t("myFeedback.toUser", {
+                              name: item.to_user_name || t("myFeedback.userNumber", { id: item.to_user_id }),
+                            })}
+                      </span>
+                      <span className="ml-auto text-xs text-gray-400">
+                        {formatDate(item.created_at, i18n.resolvedLanguage)}
+                      </span>
+                      {tab === "given" && (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          disabled={deleteMutation.isPending}
+                          className="rounded-md p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          title={t("myFeedback.deleteAction")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-700">{item.message}</p>
+                    {tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
